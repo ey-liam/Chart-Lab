@@ -420,23 +420,30 @@ credit_other = Ey-Liam & EFHIII
     /**
      * Packages notes.chart, song.ini, album art and audio into a downloadable ZIP
      */
-    async function packageZip(chartContent, iniContent, albumArtBlob, stems = {}) {
+    async function packageZip(chartContent, iniContent, albumArtBlob, stems = {}, metadata = {}) {
         if (typeof JSZip === 'undefined') {
             throw new Error('JSZip library is required for packaging.');
         }
 
+        const name = (metadata.name || 'Untitled').replace(/[\\/:*?"<>|]/g, '');
+        const artist = (metadata.artist || 'Unknown Artist').replace(/[\\/:*?"<>|]/g, '');
+        const charter = (metadata.charter || 'Chart-Lab').replace(/[\\/:*?"<>|]/g, '');
+        const folderName = `${artist} - ${name} [${charter}]`;
+
         const zip = new JSZip();
-        zip.file('notes.chart', chartContent);
-        zip.file('song.ini', iniContent);
+        const folder = zip.folder(folderName);
+
+        folder.file('notes.chart', chartContent);
+        folder.file('song.ini', iniContent);
 
         if (albumArtBlob) {
-            zip.file('album.png', albumArtBlob);
+            folder.file('album.png', albumArtBlob);
         }
 
         for (let stemName in stems) {
             const blob = stems[stemName];
             if (blob) {
-                zip.file(stemName, blob);
+                folder.file(stemName, blob);
             }
         }
 
@@ -467,9 +474,11 @@ credit_other = Ey-Liam & EFHIII
         generateSongIni,
         generatePlaceholderAlbumArt,
         packageZip,
-        packageToZip: async (chart, ini, audio, art) => {
-            const blob = await packageZip(chart, ini, art, audio);
-            return { blob, filename: 'song_package.zip' };
+        packageToZip: async (chart, ini, audio, art, meta) => {
+            const blob = await packageZip(chart, ini, art, audio, meta);
+            const name = (meta && meta.name ? meta.name : 'song').replace(/[\\/:*?"<>|]/g, '');
+            const artist = (meta && meta.artist ? meta.artist : 'artist').replace(/[\\/:*?"<>|]/g, '');
+            return { blob, filename: `${artist} - ${name}.zip` };
         },
         triggerDownload
     };

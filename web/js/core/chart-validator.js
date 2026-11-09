@@ -1,7 +1,11 @@
 /**
- * Chart-Lab - Zero-Error Chart Validator for Web Studio
- * Performs mathematical validation on all charts to prevent game crashes,
- * overlapping sustains, and fret misalignments.
+ * Chart-Lab - Zero-Defect Chart Validator & Linter
+ * Performs mathematical audits compliant with EnChor.us, Custom Songs Central (CSC),
+ * and Clone Hero/YARG standards:
+ * - Tick monotonicity
+ * - 70ms sustain gap enforcement & overlap trimming
+ * - Difficulty boundary enforcement (No Orange on Medium, No Blue/Orange on Easy, No Open on Hard/Med/Easy)
+ * - Drum cymbal marker validation
  */
 (function(root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -22,7 +26,13 @@
             isValid: true
         };
 
+        const sustainGapTicks = Math.max(10, Math.round(ppq * 0.14)); // ~70ms gap
+
         for (let inst in allCharts) {
+            const isGHL = inst.includes('ghl');
+            const isDrums = inst.includes('drum');
+            const isDance = inst === 'dance';
+
             for (let diff in allCharts[inst]) {
                 const trackName = `${diff}${inst}`;
                 const notes = allCharts[inst][diff];
@@ -33,7 +43,7 @@
                 for (let i = 1; i < notes.length; i++) {
                     if (notes[i].tick < notes[i - 1].tick) {
                         sorted = false;
-                        report.errors.push(`${trackName}: Nota en tick ${notes[i].tick} está desordenada.`);
+                        report.errors.push(`${trackName}: Nota desordenada en tick ${notes[i].tick}.`);
                         break;
                     }
                 }
@@ -42,10 +52,52 @@
                     report.fixesApplied++;
                 }
 
-                // 2. Check sustain overlap per fret
-                const lastFretNote = {};
-                const gapTicks = Math.max(10, Math.round(ppq / 8));
+                // 2. Difficulty Fret Boundaries (CSC & Wagsii rules)
+                for (let i = 0; i < notes.length; i++) {
+                    const n = notes[i];
+                    if (isGHL) {
+                        const validGhl = [0, 1, 2, 3, 4, 7, 8];
+                        if (!validGhl.includes(n.fret)) {
+                            n.fret = 1;
+                            report.fixesApplied++;
+                        }
+                    } else if (isDrums) {
+                        const validDrums = [0, 1, 2, 3, 4, 5, 64, 65, 66];
+                        if (!validDrums.includes(n.fret)) {
+                            n.fret = 1;
+                            report.fixesApplied++;
+                        }
+                    } else if (isDance) {
+                        if (n.fret < 0 || n.fret > 3) {
+                            n.fret = Math.max(0, Math.min(3, n.fret));
+                            report.fixesApplied++;
+                        }
+                    } else {
+                        // Standard 5-lane fretted
+                        if (diff === 'Easy') {
+                            // No Open, No Blue (3), No Orange (4)
+                            if (n.fret > 2 || n.fret === 7) {
+                                n.fret = Math.min(2, n.fret === 7 ? 0 : n.fret);
+                                report.fixesApplied++;
+                            }
+                        } else if (diff === 'Medium') {
+                            // No Open, No Orange (4)
+                            if (n.fret > 3 || n.fret === 7) {
+                                n.fret = Math.min(3, n.fret === 7 ? 0 : n.fret);
+                                report.fixesApplied++;
+                            }
+                        } else if (diff === 'Hard') {
+                            // No Open
+                            if (n.fret === 7) {
+                                n.fret = 0;
+                                report.fixesApplied++;
+                            }
+                        }
+                    }
+                }
 
+                // 3. Sustain Overlap & 70ms Gap
+                const lastFretNote = {};
                 for (let i = 0; i < notes.length; i++) {
                     const n = notes[i];
                     const f = n.fret;
@@ -53,17 +105,9 @@
                     if (lastFretNote[f] !== undefined) {
                         const prev = lastFretNote[f];
                         if (prev.sustain && (prev.tick + prev.sustain) >= n.tick) {
-                            report.warnings.push(`${trackName}: Sustain en tick ${prev.tick} colisionaba con nota en ${n.tick} (traste ${f}).`);
-                            prev.sustain = Math.max(0, (n.tick - prev.tick) - gapTicks);
+                            prev.sustain = Math.max(0, (n.tick - prev.tick) - sustainGapTicks);
                             report.fixesApplied++;
                         }
-                    }
-
-                    // Bounds check
-                    if (n.fret < 0 || (n.fret > 4 && n.fret !== 7 && n.fret !== 64 && n.fret !== 65 && n.fret !== 66)) {
-                        report.errors.push(`${trackName}: Traste inválido ${n.fret} en tick ${n.tick}.`);
-                        n.fret = Math.max(0, Math.min(4, n.fret));
-                        report.fixesApplied++;
                     }
 
                     lastFretNote[f] = n;

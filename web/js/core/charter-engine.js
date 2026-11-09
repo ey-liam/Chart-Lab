@@ -321,13 +321,18 @@
         const config = Object.assign({}, DEFAULT_CONFIGS.guitar, userConfig);
         const maxFrets = difficulty === 'Easy' ? 3 : (difficulty === 'Medium' ? 4 : config.frets);
         const maxChords = difficulty === 'Easy' ? 1 : (difficulty === 'Medium' ? 1 : config.maxChordSize);
+        const density = userConfig.density !== undefined ? userConfig.density : 1.0;
         const minSustainTicks = Math.round(ppq * config.minSustainQuarterBeats);
-        const sustainGapTicks = Math.round(ppq * config.sustainGapQuarterBeats);
+        // Enforce 70ms sustain gap rule from official CSC & Wagsii guidelines
+        const sustainGapTicks = Math.max(Math.round(ppq * 0.14), Math.round(ppq * (config.sustainGapQuarterBeats || 0.125)));
 
         let filteredNotes = [...rawNotes];
-        if (difficulty === 'Hard') filteredNotes = decimateNotes(rawNotes, ppq, 1 / 16);
-        else if (difficulty === 'Medium') filteredNotes = decimateNotes(rawNotes, ppq, 1 / 8);
-        else if (difficulty === 'Easy') filteredNotes = decimateNotes(rawNotes, ppq, 1 / 4);
+        if (density < 0.9) {
+            filteredNotes = filteredNotes.filter((_, idx) => (idx % Math.round(1 / density)) === 0);
+        }
+        if (difficulty === 'Hard') filteredNotes = decimateNotes(filteredNotes, ppq, 1 / 16);
+        else if (difficulty === 'Medium') filteredNotes = decimateNotes(filteredNotes, ppq, 1 / 8);
+        else if (difficulty === 'Easy') filteredNotes = decimateNotes(filteredNotes, ppq, 1 / 4);
 
         const clusters = clusterNotes(filteredNotes, config.chordToleranceTicks);
         if (clusters.length === 0) return [];
@@ -357,7 +362,8 @@
             }
 
             const lowestPitch = distinctPitches[0];
-            const isOpenNote = config.allowOpenNotes && lowestPitch <= config.openNoteThreshold;
+            // Open notes are only allowed on Expert (CSC Rule)
+            const isOpenNote = (difficulty === 'Expert') && config.allowOpenNotes && lowestPitch <= config.openNoteThreshold;
 
             if (isOpenNote) {
                 chartedEvents.push({ tick: cluster.tick, fret: 7, sustain: sustainLength, isChord: false });

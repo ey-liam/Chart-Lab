@@ -346,6 +346,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const tuningDensity = document.getElementById('tuningDensity');
+    const densityLabel = document.getElementById('densityLabel');
+    if (tuningDensity) {
+        tuningDensity.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (densityLabel) densityLabel.textContent = `${val}%`;
+            for (let k in state.configs) state.configs[k].density = val / 100.0;
+            recalculateCharts();
+        });
+    }
+
+    const btnReRoll = document.getElementById('btnReRoll');
+    if (btnReRoll) {
+        btnReRoll.addEventListener('click', () => {
+            recalculateCharts();
+            showToast('Gráfico re-generado', 'info');
+        });
+    }
+
     // Populate vocal track dropdown in lyrics tab
     function populateVocalTrackDropdown() {
         const sel = document.getElementById('vocalTrackSelect');
@@ -774,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 artBlob = await PackageExporter.generatePlaceholderAlbumArt(state.metadata.name, state.metadata.artist);
             }
 
-            const zipBlob = await PackageExporter.packageZip(chartText, songIniText, artBlob, stems);
+            const zipBlob = await PackageExporter.packageZip(chartText, songIniText, artBlob, stems, state.metadata);
             const safeName = `${state.metadata.artist} - ${state.metadata.name}`.replace(/[\\/:*?"<>|]/g, '');
             PackageExporter.triggerDownload(zipBlob, `${safeName}.zip`);
 
