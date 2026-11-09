@@ -92,6 +92,48 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Chart Tuning Parameters (Estilo EFHIII Original & Avanzado) -->
+            <div class="card-panel">
+                <div class="card-title">
+                    <span>Ajustes del Algoritmo de Charting</span>
+                    <span class="badge badge-notes">Personalización Avanzada</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small text-muted">Trastes (Frets):</label>
+                        <select class="form-select form-select-sm" id="tuningFrets">
+                            <option value="5" selected>5 Trastes (Estándar Expert/Hard)</option>
+                            <option value="4">4 Trastes (Medium)</option>
+                            <option value="3">3 Trastes (Easy)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small text-muted">Máx. Notas Simultáneas (Acordes):</label>
+                        <select class="form-select form-select-sm" id="tuningMaxChords">
+                            <option value="1">1 (Solo notas individuales)</option>
+                            <option value="2" selected>2 (Acordes de 2 notas)</option>
+                            <option value="3">3 (Acordes de hasta 3 notas)</option>
+                            <option value="4">4 (Acordes densos)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small text-muted">Sustain Mínimo (en compás):</label>
+                        <select class="form-select form-select-sm" id="tuningMinSustain">
+                            <option value="0.25">1/16 de compás (Sustains cortos)</option>
+                            <option value="0.5" selected>1/8 de compás (Estándar)</option>
+                            <option value="1.0">1/4 de compás (Solo notas largas)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small text-muted">Notas Abiertas (Open Notes):</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="tuningOpenNotes" checked>
+                            <label class="form-check-label small" for="tuningOpenNotes">Habilitar en Bajo</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- TAB 2: LETRAS & SECCIONES -->
@@ -337,30 +379,35 @@ Twenty-something's going to be so great..."></textarea>
                             </div>
                             <div class="col-12">
                                 <label class="form-label small text-muted">Charter (Autor del chart):</label>
-                                <input type="text" class="form-control" id="metaCharter" value="Chart-Lab Team & EFHIII">
+                                <input type="text" class="form-control" id="metaCharter" value="Chart-Lab">
                             </div>
                         </div>
 
                         <hr class="my-4 border-secondary">
 
-                        <div class="card-title">Estrellas de Dificultad (1 - 6)</div>
+                        <div class="card-title">Dificultades (1, 2, 3...) - Estándar YARG & Clone Hero</div>
+                        <p class="text-muted small">Medidas numéricas limpias que se escriben directamente en el <code>song.ini</code>:</p>
                         <div class="row g-3">
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Guitarra:</label>
+                                <label class="form-label small text-muted">Guitarra (diff_guitar):</label>
                                 <input type="number" class="form-control" id="metaDiffGuitar" min="0" max="6" value="3">
                             </div>
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Bajo:</label>
+                                <label class="form-label small text-muted">Bajo (diff_bass):</label>
                                 <input type="number" class="form-control" id="metaDiffBass" min="0" max="6" value="2">
                             </div>
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Batería:</label>
+                                <label class="form-label small text-muted">Batería (diff_drums):</label>
                                 <input type="number" class="form-control" id="metaDiffDrums" min="0" max="6" value="3">
                             </div>
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Teclado:</label>
+                                <label class="form-label small text-muted">Teclado (diff_keys):</label>
                                 <input type="number" class="form-control" id="metaDiffKeys" min="0" max="6" value="4">
                             </div>
+                        </div>
+
+                        <div class="alert alert-dark mt-4 border-secondary py-2 small text-muted">
+                            🔒 <strong>Créditos Ocultos:</strong> Los créditos a <em>Ey-Liam</em> y <em>EFHIII</em> se insertan automáticamente al final del archivo <code>song.ini</code> como metadatos limpios (<code>credit_arranged_by = Ey-Liam</code>, <code>credit_courtesy_of = EFHIII</code>, <code>credit_other = Ey-Liam & EFHIII</code>) sin alterar el juego.
                         </div>
                     </div>
                 </div>

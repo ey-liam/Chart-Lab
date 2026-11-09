@@ -7,7 +7,7 @@ public class ChartSong {
     public String artist = "Unknown Artist";
     public String album = "Unknown Album";
     public String year = "2024";
-    public String charter = "Chart-Lab Team & EFHIII";
+    public String charter = "Chart-Lab";
     public int resolution = 480;
     public float offset = 0.0f;
 

@@ -80,7 +80,7 @@ namespace ChartLab.Core
     {
         public string Name = "Untitled";
         public string Artist = "Unknown Artist";
-        public string Charter = "Chart-Lab Team & EFHIII";
+        public string Charter = "Chart-Lab";
         public string Album = "Unknown Album";
         public string Year = "2024";
         public float Offset = 0f;

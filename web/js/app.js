@@ -33,14 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
             artist: 'Artist',
             album: 'Album',
             year: new Date().getFullYear().toString(),
-            charter: 'EFHIII & Antigravity (MIDI-CH Studio Pro)',
+            charter: 'Chart-Lab',
             genre: 'Rock',
             offsetMs: 0,
-            previewStartSec: 45,
+            previewStartSec: 30,
             diffGuitar: 3,
             diffBass: 2,
             diffDrums: 3,
-            diffKeys: 4,
+            diffKeys: 3,
             diffRhythm: 2,
             diffVocals: 3
         },
@@ -230,6 +230,45 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Pistas auto-asignadas con éxito', 'success');
     });
 
+    // Chart Algorithm Tuning Handlers (EFHIII style adjustments)
+    const tuningFrets = document.getElementById('tuningFrets');
+    const tuningMaxChords = document.getElementById('tuningMaxChords');
+    const tuningMinSustain = document.getElementById('tuningMinSustain');
+    const tuningOpenNotes = document.getElementById('tuningOpenNotes');
+
+    if (tuningFrets) {
+        tuningFrets.addEventListener('change', (e) => {
+            const frets = parseInt(e.target.value);
+            for (let k in state.configs) state.configs[k].frets = frets;
+            recalculateCharts();
+            showToast(`Ajustado a ${frets} trastes`, 'info');
+        });
+    }
+
+    if (tuningMaxChords) {
+        tuningMaxChords.addEventListener('change', (e) => {
+            const maxChords = parseInt(e.target.value);
+            for (let k in state.configs) state.configs[k].maxChordSize = maxChords;
+            recalculateCharts();
+            showToast(`Límite de acordes ajustado a ${maxChords}`, 'info');
+        });
+    }
+
+    if (tuningMinSustain) {
+        tuningMinSustain.addEventListener('change', (e) => {
+            const minS = parseFloat(e.target.value);
+            for (let k in state.configs) state.configs[k].minSustainQuarterBeats = minS;
+            recalculateCharts();
+        });
+    }
+
+    if (tuningOpenNotes) {
+        tuningOpenNotes.addEventListener('change', (e) => {
+            state.configs.bass.allowOpenNotes = e.target.checked;
+            recalculateCharts();
+        });
+    }
+
     // Populate vocal track dropdown in lyrics tab
     function populateVocalTrackDropdown() {
         const sel = document.getElementById('vocalTrackSelect');
@@ -254,6 +293,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.midiData) return;
 
         state.allCharts = CharterEngine.buildAllCharts(state.midiData, state.trackAssignments, state.configs);
+
+        // Run Mathematical Zero-Error Validation & Repair
+        if (typeof ChartValidator !== 'undefined') {
+            const audit = ChartValidator.validateAndRepair(state.allCharts, state.midiData.ppq);
+            const auditEl = document.getElementById('auditBadge');
+            if (auditEl) {
+                if (audit.fixesApplied > 0) {
+                    auditEl.textContent = `Audit: ${audit.fixesApplied} auto-reparados`;
+                    auditEl.className = 'badge badge-warning';
+                } else {
+                    auditEl.textContent = 'Audit: 100% verificado';
+                    auditEl.className = 'badge badge-success';
+                }
+            }
+        }
 
         // Update Highway
         state.highway.setSongData(state.midiData, state.allCharts, state.lyricEvents);

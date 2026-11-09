@@ -99,17 +99,22 @@ def main():
         f.write("[Song]\n{\n")
         f.write(f'  Name = "{song_name}"\n')
         f.write(f'  Artist = "{artist_name}"\n')
-        f.write(f'  Charter = "Chart-Lab Team & EFHIII"\n')
+        f.write(f'  Charter = "Chart-Lab"\n')
         f.write(f'  Album = "{args.album}"\n')
         f.write(f'  Year = ", {args.year}"\n')
         f.write(f'  Offset = 0.000\n')
         f.write(f'  Resolution = {midi_data.ppq}\n')
-        f.write(f'  Player2 = "bass"\n')
-        f.write(f'  Difficulty = 0\n')
-        f.write(f'  PreviewStart = 45\n')
-        f.write(f'  PreviewEnd = 75\n')
+        f.write(f'  Player2 = bass\n')
+        f.write(f'  Difficulty = 2\n')
+        f.write(f'  PreviewStart = 30\n')
+        f.write(f'  PreviewEnd = 60\n')
         f.write(f'  Genre = "Rock"\n')
         f.write(f'  MediaType = "cd"\n')
+        f.write(f'  GuitarStream = "Guitar.wav"\n')
+        f.write(f'  BassStream = "Bass.wav"\n')
+        f.write(f'  DrumStream = "Drums.wav"\n')
+        f.write(f'  KeysStream = "Keys.wav"\n')
+        f.write(f'  VocalStream = "Vocals.wav"\n')
         f.write(f'  MusicStream = "song.ogg"\n')
         f.write("}\n")
 
@@ -132,21 +137,35 @@ def main():
             f.write("}\n")
 
     with open(ini_file, "w", encoding="utf-8") as f:
-        f.write(f"""[Song]
+        f.write(f"""[song]
 name = {song_name}
 artist = {artist_name}
 album = {args.album}
 genre = Rock
 year = {args.year}
-charter = Chart-Lab Team & EFHIII
+charter = Chart-Lab
+version = 1.0
 song_length = {round(midi_data.total_duration_sec * 1000)}
+preview_start_time = 30000
+preview_end_time = 60000
+diff_band = 2
 diff_guitar = 3
+diff_rhythm = 2
 diff_bass = 2
 diff_drums = 3
 diff_keys = 4
-preview_start_time = 45000
+diff_guitarghl = 0
+diff_bassghl = 0
+diff_vocals = 3
+parts_vocals_harm = 1
+modchart = 0
 icon = chartlab
-loading_phrase = Charted with Chart-Lab (Zero-Error Guarantee)
+loading_phrase = Charted with Chart-Lab Suite
+
+; --- Metadata & Credits ---
+credit_arranged_by = Ey-Liam
+credit_courtesy_of = EFHIII
+credit_other = Ey-Liam & EFHIII
 """)
 
     print(f"\n[+] Success! Ready-to-play song exported to:\n    {out_dir}")
