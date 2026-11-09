@@ -10,37 +10,56 @@ import java.io.FileWriter;
 import java.util.List;
 
 public class Main {
+
+    private static void generateFourDifficulties(
+            ChartSong song,
+            String instrumentSuffix,
+            List<MidiReader.RawMidiNote> notes,
+            int res) {
+
+        song.trackSections.put("Expert" + instrumentSuffix,
+                ChartBuilder.buildFrettedTrack(notes, res, 5, 3, 16));
+        song.trackSections.put("Hard" + instrumentSuffix,
+                ChartBuilder.buildFrettedTrack(notes, res, 5, 2, 8));
+        song.trackSections.put("Medium" + instrumentSuffix,
+                ChartBuilder.buildFrettedTrack(notes, res, 4, 2, 4));
+        song.trackSections.put("Easy" + instrumentSuffix,
+                ChartBuilder.buildFrettedTrack(notes, res, 3, 1, 2));
+    }
+
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("Chart-Lab Java Core CLI");
-            System.out.println("Usage: java -jar chart-lab-core.jar <midi-file> [output-dir]");
+            System.out.println("Uso: java -jar chart-lab-core.jar <archivo.mid> [directorio-salida]");
             return;
         }
 
         try {
             File midiFile = new File(args[0]);
             String outDir = args.length > 1 ? args[1] : "./output";
-            System.out.println("[Java] Parsing: " + midiFile.getName());
 
             MidiReader.ParsedMidi midi = MidiReader.parse(midiFile);
             ChartSong song = new ChartSong();
-            song.name = midiFile.getName().replace(".mid", "").replace("_", " ");
+            song.name = midiFile.getName().replaceFirst("[.][^.]+$", "").replace("_", " ");
             song.resolution = midi.resolution;
             song.syncTrack = midi.syncEvents;
             song.events.add("  0 = E \"section Intro\"");
 
             for (MidiReader.TrackInfo trk : midi.tracks) {
                 if (trk.notes.isEmpty()) continue;
-                String trackLower = trk.name.toLowerCase();
+                String name = trk.name.toLowerCase();
 
-                if (trackLower.contains("guitar") || trackLower.contains("lead")) {
-                    List<ChartNote> expert = ChartBuilder.buildFrettedTrack(trk.notes, midi.resolution, 5);
-                    song.trackSections.put("ExpertSingle", expert);
-                    song.trackSections.put("HardSingle", ChartBuilder.buildFrettedTrack(trk.notes, midi.resolution, 4));
-                } else if (trackLower.contains("bass")) {
-                    song.trackSections.put("ExpertDoubleBass", ChartBuilder.buildFrettedTrack(trk.notes, midi.resolution, 5));
-                } else if (trackLower.contains("key") || trackLower.contains("piano")) {
-                    song.trackSections.put("ExpertKeyboard", ChartBuilder.buildFrettedTrack(trk.notes, midi.resolution, 5));
+                if (name.contains("drum") || name.contains("perc")) {
+                    song.trackSections.put("ExpertDrums",
+                            ChartBuilder.buildProDrumsTrack(trk.notes, midi.resolution, true));
+                } else if (name.contains("bass")) {
+                    generateFourDifficulties(song, "DoubleBass", trk.notes, midi.resolution);
+                } else if (name.contains("rhythm")) {
+                    generateFourDifficulties(song, "DoubleRhythm", trk.notes, midi.resolution);
+                } else if (name.contains("key") || name.contains("piano") || name.contains("synth")) {
+                    generateFourDifficulties(song, "Keyboard", trk.notes, midi.resolution);
+                } else if (!song.trackSections.containsKey("ExpertSingle")) {
+                    generateFourDifficulties(song, "Single", trk.notes, midi.resolution);
                 }
             }
 
@@ -52,11 +71,9 @@ public class Main {
                 fw.write(song.toChartString());
             }
 
-            System.out.println("[Java] Chart generated successfully at: " + chartOut.getAbsolutePath());
-
+            System.out.println("Chart generado en: " + chartOut.getAbsolutePath());
         } catch (Exception e) {
-            System.err.println("Error processing MIDI: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error al procesar el archivo MIDI: " + e.getMessage());
         }
     }
 }

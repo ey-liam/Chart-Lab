@@ -1,1172 +1,629 @@
 /**
- * Chart-Lab - Main Application Controller
- * Coordinates UI tabs, file parsing, multi-instrument track routing, lyrics alignment,
- * interactive highway visualizer, audio playback, and package export.
+ * Chart-Lab - Controlador Principal de Interfaz y Estado
+ * Autor: Ey-Liam
  */
 document.addEventListener('DOMContentLoaded', () => {
-    'use strict';
+    const audioManager = new AudioManager();
+    const visualizer = new HighwayVisualizer('highwayCanvas', 'waveformSyncCanvas', 'vocalPreviewCanvas');
 
-    // Application State
-    const state = {
-        midiData: null,
-        audioEngine: new AudioEngine(),
-        highway: null,
-        trackAssignments: {
-            guitar: [],
-            guitarghl: [],
-            bass: [],
-            bassghl: [],
-            rhythm: [],
-            rhythmghl: [],
-            guitar_coop: [],
-            guitar_coop_ghl: [],
-            drums: [],
-            drums_5lane: [],
-            keys: [],
-            keys_real: [],
-            vocals: [],
-            vocals_harm1: [],
-            vocals_harm2: [],
-            vocals_harm3: [],
-            dance: []
-        },
-        configs: {
-            guitar: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.guitar),
-            guitarghl: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.guitarghl),
-            bass: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.bass),
-            bassghl: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.bassghl),
-            rhythm: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.rhythm),
-            rhythmghl: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.rhythmghl),
-            guitar_coop: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.guitar_coop),
-            guitar_coop_ghl: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.guitar_coop_ghl),
-            drums: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.drums),
-            drums_5lane: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.drums_5lane),
-            keys: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.keys),
-            keys_real: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.keys_real),
-            dance: Object.assign({}, CharterEngine.DEFAULT_CONFIGS.dance)
-        },
-        allCharts: {},
-        lyricEvents: [],
-        metadata: {
-            name: 'Song Title',
-            artist: 'Artist',
-            album: 'Album',
-            albumTrack: 1,
-            year: new Date().getFullYear().toString(),
-            genre: 'Rock',
-            subGenre: 'Alternative',
-            tags: '',
-            location: '',
-            rating: 1,
-            playlist: '',
-            playlistTrack: 1,
-            charter: 'Chart-Lab',
-            icon: 'chartlab',
-            loadingPhrase: 'Charted with Chart-Lab Suite',
-            offsetMs: 0,
-            previewStartSec: 30,
+    let parsedMidi = null;
+    let trackAssignments = {};
+    let generatedCharts = {};
+    let lyricEvents = [];
+    let syllableByNoteIdx = [];
+    let sections = [{ tick: 0, name: 'Intro' }];
 
-            // Difficulties
-            diffBand: 2,
-            diffGuitar: 3,
-            diffGuitarGhl: 0,
-            diffGuitarReal: 0,
-            diffGuitarReal22: 0,
-            diffGuitarCoop: 0,
-            diffGuitarCoopGhl: 0,
-            diffRhythm: 0,
-            diffRhythmGhl: 0,
-            diffBass: 2,
-            diffBassGhl: 0,
-            diffBassReal: 0,
-            diffBassReal22: 0,
-            diffDrums: 3,
-            diffDrumsReal: 3,
-            diffEliteDrums: 0,
-            diffKeys: 0,
-            diffKeysReal: 0,
-            diffVocals: 3,
-            diffVocalsHarm: 0,
-            diffDance: 0,
-
-            // Engine flags
-            proDrums: true,
-            fiveLaneDrums: false,
-            partsVocalsHarm: 1,
-            vocalScrollSpeed: 100,
-            modchart: 0,
-            videoStartTime: 0,
-            endEvents: 0,
-
-            // Credits
-            creditAlbumArtBy: '',
-            creditComposedBy: '',
-            creditEngineeredBy: '',
-            creditLicense: '',
-            creditMasteredBy: '',
-            creditMixedBy: '',
-            creditPerformedBy: '',
-            creditProducedBy: '',
-            creditPublishedBy: '',
-            creditWrittenBy: '',
-
-            // Social links
-            linkBandcamp: '',
-            linkBluesky: '',
-            linkFacebook: '',
-            linkInstagram: '',
-            linkNewgrounds: '',
-            linkSoundcloud: '',
-            linkSpotify: '',
-            linkTiktok: '',
-            linkTwitter: '',
-            linkYoutube: '',
-            linkOther: ''
-        },
-        albumArtBlob: null
-    };
-
-    // Initialize Highway Visualizer
-    const highwayCanvas = document.getElementById('highwayCanvas');
-    state.highway = new HighwayVisualizer(highwayCanvas, state.audioEngine);
-    state.highway.start();
-
-    // Setup Tab Navigation
-    const tabButtons = document.querySelectorAll('.nav-tab');
-    const tabContents = document.querySelectorAll('.tab-pane');
-
-    tabButtons.forEach(btn => {
+    // 1. Navegación de Pestañas Principales
+    document.querySelectorAll('.nav-tab').forEach(btn => {
         btn.addEventListener('click', () => {
-            const targetTab = btn.getAttribute('data-tab');
-            tabButtons.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-
+            document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('main > .tab-pane').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
-            const targetEl = document.getElementById(targetTab);
-            if (targetEl) targetEl.classList.add('active');
-
-            if (targetTab === 'tab-highway') {
-                state.highway.resize();
-            } else if (targetTab === 'tab-audio') {
-                redrawAudioWaveform();
-            } else if (targetTab === 'tab-lyrics') {
-                redrawVocalRoll();
-            }
+            const target = document.getElementById(btn.dataset.tab);
+            if (target) target.classList.add('active');
+            window.dispatchEvent(new Event('resize'));
         });
     });
 
-    // Setup MIDI File Drag & Drop
-    const midiDropZone = document.getElementById('midiDropZone');
-    const midiFileInput = document.getElementById('midiFileInput');
+    // 2. Portada por defecto en Canvas
+    const albumCanvas = document.getElementById('albumArtCanvas');
+    const drawDefaultCover = (title, artist) => {
+        if (!albumCanvas) return;
+        const ctx = albumCanvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 180, 180);
+        grad.addColorStop(0, '#0b132b');
+        grad.addColorStop(1, '#0284c7');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 180, 180);
 
-    midiDropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        midiDropZone.classList.add('hover');
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.strokeRect(8, 8, 164, 164);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '700 12px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('CHART-LAB', 90, 40);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 15px system-ui, sans-serif';
+        ctx.fillText((title || 'Song Title').slice(0, 18), 90, 95);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '500 12px system-ui, sans-serif';
+        ctx.fillText((artist || 'Artist').slice(0, 20), 90, 120);
+    };
+    drawDefaultCover('Song Title', 'Artist');
+
+    document.getElementById('albumArtInput')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file || !albumCanvas) return;
+        const img = new Image();
+        img.onload = () => {
+            const ctx = albumCanvas.getContext('2d');
+            ctx.clearRect(0, 0, 180, 180);
+            ctx.drawImage(img, 0, 0, 180, 180);
+        };
+        img.src = URL.createObjectURL(file);
     });
 
-    midiDropZone.addEventListener('dragleave', () => {
-        midiDropZone.classList.remove('hover');
-    });
-
-    midiDropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        midiDropZone.classList.remove('hover');
-        if (e.dataTransfer.files.length > 0) {
-            handleMidiFile(e.dataTransfer.files[0]);
-        }
-    });
-
-    midiFileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleMidiFile(e.target.files[0]);
-        }
-    });
-
-    async function handleMidiFile(file) {
+    // 3. Carga de Archivo MIDI
+    const midiInput = document.getElementById('midiFileInput');
+    const handleMidiFile = async (file) => {
+        if (!file) return;
         try {
-            document.getElementById('midiFileName').textContent = `Cargando: ${file.name}...`;
-            const arrayBuf = await file.arrayBuffer();
-            const parsed = MidiParser.parse(arrayBuf);
-            state.midiData = parsed;
+            const buf = await file.arrayBuffer();
+            parsedMidi = MidiParser.parseArrayBuffer(buf);
 
-            // Extract clean title from filename
-            let baseName = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
-            if (baseName.includes(' - ')) {
-                const parts = baseName.split(' - ');
-                state.metadata.artist = parts[0].trim();
-                state.metadata.name = parts[1].trim();
+            document.getElementById('midiFileName').textContent = `MIDI: ${file.name}`;
+            const mainBpm = parsedMidi.tempos[0] ? Math.round(parsedMidi.tempos[0].bpm) : 120;
+            document.getElementById('tempoSummaryBadge').textContent = `BPM: ${mainBpm} (${parsedMidi.tempos.length} cambios)`;
+
+            const cleanName = file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ');
+            const parts = cleanName.split(' - ');
+            if (parts.length >= 2) {
+                document.getElementById('metaArtist').value = parts[0].trim();
+                document.getElementById('metaName').value = parts.slice(1).join(' - ').trim();
             } else {
-                state.metadata.name = baseName;
+                document.getElementById('metaName').value = cleanName;
             }
+            drawDefaultCover(document.getElementById('metaName').value, document.getElementById('metaArtist').value);
 
-            updateMetadataForm();
+            audioManager.setMidiPlaybackData(parsedMidi);
+            sections = LyricsAligner.autoGenerateSections(parsedMidi);
+            renderSectionsTable();
 
-            // Set MIDI data into Audio Engine for synthesis & visualizers
-            state.audioEngine.setMidiData(parsed);
-
-            // Auto-assign tracks
-            state.trackAssignments = CharterEngine.autoAssignTracks(parsed.tracks);
-
-            // Check if MIDI already has lyrics
-            const midiLyrics = LyricsEngine.extractMidiLyrics(parsed);
-            if (midiLyrics.length > 0) {
-                state.lyricEvents = LyricsEngine.formatMidiLyricsToEvents(midiLyrics, parsed.ppq);
-                document.getElementById('lyricsStatusBadge').textContent = `${midiLyrics.length} eventos líricos encontrados`;
-                document.getElementById('lyricsStatusBadge').className = 'badge badge-success';
-            } else {
-                state.lyricEvents = LyricsEngine.generateSections(parsed.maxTick, parsed.ppq);
-                document.getElementById('lyricsStatusBadge').textContent = 'Sin letras embebidas';
-                document.getElementById('lyricsStatusBadge').className = 'badge badge-warning';
-            }
-
-            // Rebuild charts
-            recalculateCharts();
-
-            // Render Track Routing Table
+            autoAssignTracks();
             renderTrackRoutingTable();
-
-            // Render Vocal Track Selector for lyrics
             populateVocalTrackDropdown();
-
-            document.getElementById('midiFileName').textContent = `Archivo: ${file.name} (${parsed.tracks.length} pistas, ${(parsed.totalDurationSec).toFixed(1)}s)`;
-            showToast('MIDI procesado correctamente', 'success');
-
+            rebuildAllCharts();
         } catch (err) {
-            console.error(err);
-            alert('Error al leer el archivo MIDI: ' + err.message);
+            alert(`Error al leer el archivo MIDI: ${err.message}`);
         }
-    }
+    };
 
-    // Render Track Routing Matrix
-    function renderTrackRoutingTable() {
+    midiInput?.addEventListener('change', (e) => handleMidiFile(e.target.files[0]));
+
+    const autoAssignTracks = () => {
+        if (!parsedMidi) return;
+        trackAssignments = {};
+        const used = new Set();
+        parsedMidi.tracks.forEach(trk => {
+            const inst = CharterEngine.autoDetectInstrument(trk, used);
+            trackAssignments[trk.id] = inst;
+            if (inst !== 'none') used.add(inst);
+        });
+    };
+
+    document.getElementById('btnAutoAssign')?.addEventListener('click', () => {
+        autoAssignTracks();
+        renderTrackRoutingTable();
+        rebuildAllCharts();
+    });
+
+    document.getElementById('btnStopMidiPreview')?.addEventListener('click', () => {
+        audioManager.pause();
+        updatePlayButtonLabels();
+    });
+
+    const renderTrackRoutingTable = () => {
         const tbody = document.getElementById('trackRoutingBody');
+        if (!tbody || !parsedMidi) return;
         tbody.innerHTML = '';
 
-        if (!state.midiData) return;
-
-        state.midiData.tracks.forEach(track => {
+        parsedMidi.tracks.forEach(trk => {
             const tr = document.createElement('tr');
+            const rangeStr = `${MidiParser.pitchToNoteName(trk.minPitch)} - ${MidiParser.pitchToNoteName(trk.maxPitch)}`;
 
-            // Find current assignment
-            let assignedTo = 'none';
-            for (let inst in state.trackAssignments) {
-                if (state.trackAssignments[inst].includes(track.id)) {
-                    assignedTo = inst;
-                    break;
-                }
-            }
-
-            const percBadge = track.isPercussion ? '<span class="badge badge-percussion">Percusión</span>' : '';
-            const pitchRangeStr = track.notes.length > 0 ? `${MidiParser.pitchToName(track.minPitch)} - ${MidiParser.pitchToName(track.maxPitch)}` : 'N/A';
-
-            let optionsHtml = `<option value="none" ${assignedTo === 'none' ? 'selected' : ''}>-- Ignorar --</option>`;
-            for (let instKey in CharterEngine.INSTRUMENTS) {
-                const info = CharterEngine.INSTRUMENTS[instKey];
-                optionsHtml += `<option value="${instKey}" ${assignedTo === instKey ? 'selected' : ''}>${info.name}</option>`;
-            }
+            let optionsHtml = `<option value="none">Ignorar / No asignar</option>`;
+            Object.values(CharterEngine.INSTRUMENTS).forEach(inst => {
+                const sel = trackAssignments[trk.id] === inst.id ? 'selected' : '';
+                optionsHtml += `<option value="${inst.id}" ${sel}>${inst.label}</option>`;
+            });
 
             tr.innerHTML = `
-                <td><strong>#${track.id + 1}</strong></td>
+                <td>Canal ${trk.channel + 1} (#${trk.id + 1})</td>
+                <td class="fw-semibold">${trk.name}</td>
+                <td><span class="badge badge-notes">${trk.notes.length} notas</span></td>
+                <td class="font-monospace small">${rangeStr}</td>
                 <td>
-                    <div class="track-title">${track.name || 'Sin nombre'}</div>
-                    <small class="text-muted">${track.instrumentName || 'General Instrument'} ${percBadge}</small>
+                    <button class="btn btn-sm btn-outline-info btn-preview-trk" data-trk="${trk.id}">
+                        Escuchar Pista
+                    </button>
                 </td>
-                <td><span class="badge badge-notes">${track.notes.length} notas</span></td>
-                <td><small>${pitchRangeStr}</small></td>
                 <td>
-                    <select class="form-select form-select-sm track-assign-select" data-track-id="${track.id}">
+                    <select class="form-select form-select-sm trk-assign-select" data-trk="${trk.id}">
                         ${optionsHtml}
                     </select>
                 </td>
             `;
-
             tbody.appendChild(tr);
         });
 
-        // Add event listeners to dropdowns
-        document.querySelectorAll('.track-assign-select').forEach(sel => {
-            sel.addEventListener('change', (e) => {
-                const trackId = parseInt(e.target.getAttribute('data-track-id'));
-                const newInst = e.target.value;
-
-                // Remove from all existing assignments
-                for (let k in state.trackAssignments) {
-                    state.trackAssignments[k] = state.trackAssignments[k].filter(id => id !== trackId);
-                }
-
-                if (newInst !== 'none') {
-                    if (!state.trackAssignments[newInst]) state.trackAssignments[newInst] = [];
-                    state.trackAssignments[newInst].push(trackId);
-                }
-
-                recalculateCharts();
-            });
-        });
-    }
-
-    // Auto-Assign button
-    document.getElementById('btnAutoAssign').addEventListener('click', () => {
-        if (!state.midiData) {
-            showToast('Cargue un archivo MIDI primero', 'warning');
-            return;
-        }
-        state.trackAssignments = CharterEngine.autoAssignTracks(state.midiData.tracks);
-        renderTrackRoutingTable();
-        recalculateCharts();
-        showToast('Pistas asignadas automáticamente', 'success');
-    });
-
-    // Chart Algorithm Tuning Handlers
-    const tuningFrets = document.getElementById('tuningFrets');
-    const tuningMaxChords = document.getElementById('tuningMaxChords');
-    const tuningMinSustain = document.getElementById('tuningMinSustain');
-    const tuningOpenNotes = document.getElementById('tuningOpenNotes');
-
-    if (tuningFrets) {
-        tuningFrets.addEventListener('change', (e) => {
-            const frets = parseInt(e.target.value);
-            for (let k in state.configs) state.configs[k].frets = frets;
-            recalculateCharts();
-        });
-    }
-
-    if (tuningMaxChords) {
-        tuningMaxChords.addEventListener('change', (e) => {
-            const maxChords = parseInt(e.target.value);
-            for (let k in state.configs) state.configs[k].maxChordSize = maxChords;
-            recalculateCharts();
-        });
-    }
-
-    if (tuningMinSustain) {
-        tuningMinSustain.addEventListener('change', (e) => {
-            const minS = parseFloat(e.target.value);
-            for (let k in state.configs) state.configs[k].minSustainQuarterBeats = minS;
-            recalculateCharts();
-        });
-    }
-
-    if (tuningOpenNotes) {
-        tuningOpenNotes.addEventListener('change', (e) => {
-            state.configs.bass.allowOpenNotes = e.target.checked;
-            recalculateCharts();
-        });
-    }
-
-    const tuningDensity = document.getElementById('tuningDensity');
-    const densityLabel = document.getElementById('densityLabel');
-    if (tuningDensity) {
-        tuningDensity.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            if (densityLabel) densityLabel.textContent = `${val}%`;
-            for (let k in state.configs) state.configs[k].density = val / 100.0;
-            recalculateCharts();
-        });
-    }
-
-    const tuningStyle = document.getElementById('tuningStyle');
-    if (tuningStyle) {
-        tuningStyle.addEventListener('change', (e) => {
-            const style = e.target.value;
-            for (let k in state.configs) state.configs[k].style = style;
-            recalculateCharts();
-            showToast(`Estilo de digitación: ${style}`, 'info');
-        });
-    }
-
-    const tuningStarPower = document.getElementById('tuningStarPower');
-    if (tuningStarPower) {
-        tuningStarPower.addEventListener('change', (e) => {
-            const freq = parseInt(e.target.value);
-            for (let k in state.configs) state.configs[k].starPowerFrequency = freq;
-            recalculateCharts();
-            showToast(`Star Power: cada ${freq} compases`, 'info');
-        });
-    }
-
-    const tuningDrumPedal = document.getElementById('tuningDrumPedal');
-    if (tuningDrumPedal) {
-        tuningDrumPedal.addEventListener('change', (e) => {
-            if (state.configs.drums) {
-                state.configs.drums.singleKickPedal = (e.target.value === 'single');
-                recalculateCharts();
-                showToast(`Pedal de bombo: ${e.target.value === 'single' ? 'Pedal Simple' : 'Doble Pedal'}`, 'info');
-            }
-        });
-    }
-
-    const btnReRoll = document.getElementById('btnReRoll');
-    if (btnReRoll) {
-        btnReRoll.addEventListener('click', () => {
-            recalculateCharts();
-            showToast('Gráfico re-generado', 'info');
-        });
-    }
-
-    // Populate vocal track dropdown in lyrics tab
-    function populateVocalTrackDropdown() {
-        const sel = document.getElementById('vocalTrackSelect');
-        sel.innerHTML = '';
-
-        if (!state.midiData) return;
-
-        state.midiData.tracks.forEach(track => {
-            if (track.notes.length > 0 && !track.isPercussion) {
-                const isSelected = state.trackAssignments.vocals && state.trackAssignments.vocals.includes(track.id);
-                const opt = document.createElement('option');
-                opt.value = track.id;
-                opt.textContent = `Pista #${track.id + 1}: ${track.name} (${track.notes.length} notas)`;
-                if (isSelected) opt.selected = true;
-                sel.appendChild(opt);
-            }
-        });
-
-        sel.onchange = () => redrawVocalRoll();
-        redrawVocalRoll();
-    }
-
-    // Recalculate charts across all assigned tracks
-    function recalculateCharts() {
-        if (!state.midiData) return;
-
-        state.allCharts = CharterEngine.buildAllCharts(state.midiData, state.trackAssignments, state.configs);
-
-        // Run validation
-        if (typeof ChartValidator !== 'undefined') {
-            const audit = ChartValidator.validateAndRepair(state.allCharts, state.midiData.ppq);
-            const auditEl = document.getElementById('auditBadge');
-            if (auditEl) {
-                if (audit.fixesApplied > 0) {
-                    auditEl.textContent = `Audit: ${audit.fixesApplied} correcciones`;
-                    auditEl.className = 'badge badge-warning';
+        tbody.querySelectorAll('.btn-preview-trk').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const trkId = parseInt(btn.dataset.trk, 10);
+                if (audioManager.isPlaying && audioManager.previewTrackIndex === trkId) {
+                    audioManager.pause();
+                    btn.textContent = 'Escuchar Pista';
                 } else {
-                    auditEl.textContent = 'Audit: 100% verificado';
-                    auditEl.className = 'badge badge-success';
+                    tbody.querySelectorAll('.btn-preview-trk').forEach(b => b.textContent = 'Escuchar Pista');
+                    const firstNoteSec = parsedMidi.tracks[trkId].notes[0]
+                        ? parsedMidi.tickToSeconds(parsedMidi.tracks[trkId].notes[0].tick)
+                        : 0;
+                    audioManager.seek(Math.max(0, firstNoteSec - 0.2));
+                    audioManager.play(trkId);
+                    btn.textContent = 'Detener';
                 }
+                updatePlayButtonLabels();
+            });
+        });
+
+        tbody.querySelectorAll('.trk-assign-select').forEach(sel => {
+            sel.addEventListener('change', () => {
+                trackAssignments[parseInt(sel.dataset.trk, 10)] = sel.value;
+                rebuildAllCharts();
+            });
+        });
+    };
+
+    const getTuningParams = () => ({
+        frets: document.getElementById('tuningFrets')?.value || '5',
+        maxChords: document.getElementById('tuningMaxChords')?.value || '2',
+        style: document.getElementById('tuningStyle')?.value || 'balanced',
+        hopoThreshold: document.getElementById('tuningHopoThreshold')?.value || '65',
+        minSustain: document.getElementById('tuningMinSustain')?.value || '0.5',
+        starPower: document.getElementById('tuningStarPower')?.value || '16',
+        drumPedal: document.getElementById('tuningDrumPedal')?.value || 'pro_single',
+        openNotesMode: document.getElementById('tuningOpenNotesMode')?.value || 'bass_only',
+        density: document.getElementById('tuningDensity')?.value || '100'
+    });
+
+    const rebuildAllCharts = () => {
+        if (!parsedMidi) return;
+        const tuning = getTuningParams();
+        generatedCharts = CharterEngine.generateAllDifficulties(parsedMidi, trackAssignments, tuning);
+
+        const audit = ChartValidator.validateAndRepair(generatedCharts, parsedMidi.resolution);
+        document.getElementById('auditBadge').textContent = `Auditoria: ${audit.fixesApplied} ajustes aplicados`;
+
+        updateActiveInstrumentSelectors();
+        updateMetricsPanel();
+    };
+
+    document.getElementById('btnReRoll')?.addEventListener('click', rebuildAllCharts);
+    ['tuningFrets', 'tuningMaxChords', 'tuningStyle', 'tuningHopoThreshold', 'tuningMinSustain', 'tuningStarPower', 'tuningDrumPedal', 'tuningOpenNotesMode'].forEach(id => {
+        document.getElementById(id)?.addEventListener('change', rebuildAllCharts);
+    });
+    document.getElementById('tuningDensity')?.addEventListener('input', (e) => {
+        document.getElementById('densityLabel').textContent = `${e.target.value}%`;
+        rebuildAllCharts();
+    });
+
+    const updateActiveInstrumentSelectors = () => {
+        const activeInsts = Object.keys(generatedCharts);
+        ['statsInstSelect', 'highwayInstSelect'].forEach(selId => {
+            const sel = document.getElementById(selId);
+            if (!sel) return;
+            const prevVal = sel.value;
+            sel.innerHTML = '';
+            activeInsts.forEach(k => {
+                const opt = document.createElement('option');
+                opt.value = k;
+                opt.textContent = CharterEngine.INSTRUMENTS[k].label;
+                sel.appendChild(opt);
+            });
+            if (activeInsts.includes(prevVal)) sel.value = prevVal;
+        });
+    };
+
+    const updateMetricsPanel = () => {
+        const inst = document.getElementById('statsInstSelect')?.value;
+        const diff = document.getElementById('statsDiffSelect')?.value || 'Expert';
+        const trackData = (generatedCharts[inst] && generatedCharts[inst][diff]) ? generatedCharts[inst][diff] : null;
+        const stats = CharterEngine.computeTrackStats(trackData);
+
+        document.getElementById('statTotalNotes').textContent = stats.totalNotes;
+        document.getElementById('statNpsAvg').textContent = stats.avgNps;
+        document.getElementById('statNpsPeak').textContent = stats.peakNps;
+        document.getElementById('statChords').textContent = stats.chordsCount;
+        document.getElementById('statStarPower').textContent = stats.spCount;
+        document.getElementById('statSuggestedDiff').textContent = `Nivel ${stats.suggestedTier}`;
+    };
+
+    document.getElementById('statsInstSelect')?.addEventListener('change', updateMetricsPanel);
+    document.getElementById('statsDiffSelect')?.addEventListener('change', updateMetricsPanel);
+
+    document.getElementById('btnApplySuggestedDiff')?.addEventListener('click', () => {
+        const mapField = {
+            guitar: 'metaDiffGuitar',
+            bass: 'metaDiffBass',
+            rhythm: 'metaDiffRhythm',
+            coop: 'metaDiffGuitarCoop',
+            ghl_guitar: 'metaDiffGuitarGhl',
+            ghl_bass: 'metaDiffBassGhl',
+            drums: 'metaDiffDrums',
+            keys: 'metaDiffKeys',
+            vocals: 'metaDiffVocals',
+            harm1: 'metaDiffVocalsHarm',
+            dance: 'metaDiffDance'
+        };
+        Object.values(mapField).forEach(fid => {
+            const el = document.getElementById(fid);
+            if (el) el.value = -1;
+        });
+        Object.keys(generatedCharts).forEach(instKey => {
+            const st = CharterEngine.computeTrackStats(generatedCharts[instKey].Expert);
+            const fieldId = mapField[instKey];
+            if (fieldId && document.getElementById(fieldId)) {
+                document.getElementById(fieldId).value = st.suggestedTier;
             }
-        }
-
-        // Update Highway
-        state.highway.setSongData(state.midiData, state.allCharts, state.lyricEvents);
-
-        // Update active instrument selector options
-        updateHighwayInstrumentOptions();
-
-        // Update Live Stats
-        updateLiveStats();
-    }
-
-    function updateLiveStats() {
-        if (!state.allCharts || !state.midiData) return;
-        const instSel = document.getElementById('statsInstSelect');
-        const diffSel = document.getElementById('statsDiffSelect');
-        if (!instSel || !diffSel) return;
-
-        const inst = instSel.value;
-        const diff = diffSel.value;
-        const track = (state.allCharts[inst] && state.allCharts[inst][diff]) || [];
-        const stats = CharterEngine.calculateTrackStats(track, state.midiData);
-
-        const totalEl = document.getElementById('statTotalNotes');
-        const avgEl = document.getElementById('statNpsAvg');
-        const peakEl = document.getElementById('statNpsPeak');
-        const chordsEl = document.getElementById('statChords');
-        const spEl = document.getElementById('statStarPower');
-        const diffEl = document.getElementById('statSuggestedDiff');
-
-        if (totalEl) totalEl.textContent = stats.totalNotes;
-        if (avgEl) avgEl.textContent = stats.npsAvg;
-        if (peakEl) peakEl.textContent = stats.npsPeak;
-        if (chordsEl) chordsEl.textContent = stats.chordCount;
-        if (spEl) spEl.textContent = stats.starPowerCount;
-        if (diffEl) {
-            diffEl.textContent = `Nivel ${stats.suggestedDiff}`;
-            diffEl.dataset.diffVal = stats.suggestedDiff;
-        }
-    }
-
-    const statsInstSelect = document.getElementById('statsInstSelect');
-    if (statsInstSelect) statsInstSelect.addEventListener('change', updateLiveStats);
-
-    const statsDiffSelect = document.getElementById('statsDiffSelect');
-    if (statsDiffSelect) statsDiffSelect.addEventListener('change', updateLiveStats);
-
-    const btnApplySuggestedDiff = document.getElementById('btnApplySuggestedDiff');
-    if (btnApplySuggestedDiff) {
-        btnApplySuggestedDiff.addEventListener('click', () => {
-            const instSel = document.getElementById('statsInstSelect');
-            const diffEl = document.getElementById('statSuggestedDiff');
-            if (!instSel || !diffEl) return;
-
-            const inst = instSel.value;
-            const diffVal = parseInt(diffEl.dataset.diffVal || 3);
-            const diffMap = {
-                guitar: 'diffGuitar',
-                bass: 'diffBass',
-                drums: 'diffDrums',
-                keys: 'diffKeys',
-                rhythm: 'diffRhythm'
-            };
-            const metaKey = diffMap[inst];
-            if (metaKey) {
-                state.metadata[metaKey] = diffVal;
-                syncMetadataToForm();
-                showToast(`Dificultad de ${inst} actualizada a Nivel ${diffVal} en song.ini`, 'success');
+            if (instKey === 'drums' && document.getElementById('metaDiffDrumsReal')) {
+                document.getElementById('metaDiffDrumsReal').value = st.suggestedTier;
             }
         });
-    }
+    });
 
-    const btnAutoSections = document.getElementById('btnAutoSections');
-    if (btnAutoSections) {
-        btnAutoSections.addEventListener('click', () => {
-            if (!state.midiData) {
-                showToast('Cargue un archivo MIDI primero', 'warning');
-                return;
-            }
-            const autoSections = CharterEngine.generateAutoPracticeSections(state.midiData);
-            state.lyricEvents = state.lyricEvents.filter(e => !e.eventText || !e.eventText.startsWith('section ')).concat(autoSections);
-            state.lyricEvents.sort((a, b) => a.tick - b.tick);
-            renderLyricsTable(state.lyricEvents);
-            redrawVocalRoll();
-            showToast(`${autoSections.length} secciones de práctica generadas`, 'success');
-        });
-    }
-
-    function updateHighwayInstrumentOptions() {
-        const instSel = document.getElementById('highwayInstSelect');
-        instSel.innerHTML = '';
-
-        const available = Object.keys(state.allCharts).filter(k => Object.keys(state.allCharts[k]).length > 0);
-
-        if (available.length === 0) {
+    // 4. Pestaña Letras y Secciones
+    const populateVocalTrackDropdown = () => {
+        const sel = document.getElementById('vocalTrackSelect');
+        if (!sel || !parsedMidi) return;
+        sel.innerHTML = '';
+        parsedMidi.tracks.forEach(trk => {
             const opt = document.createElement('option');
-            opt.value = 'guitar';
-            opt.textContent = 'Sin instrumentos asignados';
-            instSel.appendChild(opt);
-            return;
-        }
-
-        available.forEach(inst => {
-            const opt = document.createElement('option');
-            opt.value = inst;
-            const info = CharterEngine.INSTRUMENTS[inst];
-            opt.textContent = info ? info.name : inst;
-            if (inst === state.highway.selectedInstrument) opt.selected = true;
-            instSel.appendChild(opt);
+            opt.value = trk.id;
+            opt.textContent = `Pista #${trk.id + 1}: ${trk.name} (${trk.notes.length} notas)`;
+            if (trackAssignments[trk.id] === 'vocals') opt.selected = true;
+            sel.appendChild(opt);
         });
+    };
 
-        if (!available.includes(state.highway.selectedInstrument)) {
-            state.highway.setInstrument(available[0]);
-        }
-    }
-
-    // Highway Controls
-    document.getElementById('highwayInstSelect').addEventListener('change', (e) => {
-        state.highway.setInstrument(e.target.value);
-    });
-
-    document.getElementById('highwayDiffSelect').addEventListener('change', (e) => {
-        state.highway.setDifficulty(e.target.value);
-    });
-
-    document.getElementById('highwaySpeedSelect').addEventListener('change', (e) => {
-        const speed = parseFloat(e.target.value);
-        state.highway.speedWindowSeconds = speed;
-    });
-
-    const playbackRateSelect = document.getElementById('playbackRateSelect');
-    if (playbackRateSelect) {
-        playbackRateSelect.addEventListener('change', (e) => {
-            const rate = parseFloat(e.target.value) || 1.0;
-            state.audioEngine.setPlaybackRate(rate);
-            showToast(`Velocidad de reproducción: ${rate}x`, 'info');
-        });
-    }
-
-    let metronomeActive = false;
-    const btnMetronomeToggle = document.getElementById('btnMetronomeToggle');
-    if (btnMetronomeToggle) {
-        btnMetronomeToggle.addEventListener('click', () => {
-            metronomeActive = !metronomeActive;
-            btnMetronomeToggle.classList.toggle('active', metronomeActive);
-            btnMetronomeToggle.classList.toggle('btn-warning', metronomeActive);
-            btnMetronomeToggle.classList.toggle('btn-outline-warning', !metronomeActive);
-            state.highway.setMetronome(metronomeActive, (isDownbeat) => {
-                state.audioEngine.playMetronomeClick(isDownbeat);
-            });
-            showToast(metronomeActive ? 'Metrónomo activado' : 'Metrónomo desactivado', 'info');
-        });
-    }
-
-    const btnPlayPause = document.getElementById('btnPlayPause');
-    btnPlayPause.addEventListener('click', togglePlayback);
-
-    function togglePlayback() {
-        if (state.audioEngine.isPlaying) {
-            state.audioEngine.pause();
-            btnPlayPause.textContent = 'Reproducir';
-            btnPlayPause.classList.remove('btn-danger');
-            btnPlayPause.classList.add('btn-success');
-        } else {
-            state.audioEngine.play();
-            btnPlayPause.textContent = 'Pausar';
-            btnPlayPause.classList.remove('btn-success');
-            btnPlayPause.classList.add('btn-danger');
-        }
-    }
-
-    // Scrubber
-    const timeScrubber = document.getElementById('timeScrubber');
-    const timeDisplay = document.getElementById('timeDisplay');
-
-    timeScrubber.addEventListener('input', (e) => {
-        if (!state.midiData) return;
-        const targetSec = (parseFloat(e.target.value) / 100) * state.midiData.totalDurationSec;
-        state.audioEngine.seek(targetSec);
-    });
-
-    setInterval(() => {
-        if (!state.midiData) return;
-        const cur = state.audioEngine.getCurrentTime();
-        const total = state.midiData.totalDurationSec;
-        timeScrubber.value = (cur / total) * 100;
-        timeDisplay.textContent = `${formatTime(cur)} / ${formatTime(total)}`;
-    }, 100);
-
-    function formatTime(sec) {
-        const m = Math.floor(sec / 60);
-        const s = Math.floor(sec % 60);
-        return `${m}:${s < 10 ? '0' : ''}${s}`;
-    }
-
-    // Audio & Stems Handlers
-    const stemsList = ['song', 'guitar', 'bass', 'drums', 'vocals', 'keys'];
-    stemsList.forEach(stem => {
-        const fileInput = document.getElementById(`stemFile_${stem}`);
-        const nameEl = document.getElementById(`stemName_${stem}`);
-        const muteBtn = document.getElementById(`stemMute_${stem}`);
-        const soloBtn = document.getElementById(`stemSolo_${stem}`);
-
-        if (fileInput) {
-            fileInput.addEventListener('change', async (e) => {
-                if (e.target.files.length > 0) {
-                    const f = e.target.files[0];
-                    nameEl.textContent = `${f.name} (${(f.size / (1024 * 1024)).toFixed(1)} MB)`;
-                    await state.audioEngine.loadStem(stem, f);
-                    const wfText = document.getElementById('waveformStatusText');
-                    if (wfText) wfText.textContent = `Forma de onda: ${f.name}`;
-                    redrawAudioWaveform();
-                    showToast(`Stem ${stem} cargado`, 'info');
-                }
-            });
-        }
-
-        if (muteBtn) {
-            muteBtn.addEventListener('click', () => {
-                const isMuted = state.audioEngine.toggleMute(stem);
-                muteBtn.classList.toggle('active', isMuted);
-            });
-        }
-
-        if (soloBtn) {
-            soloBtn.addEventListener('click', () => {
-                const isSolo = state.audioEngine.toggleSolo(stem);
-                soloBtn.classList.toggle('active', isSolo);
-            });
+    document.getElementById('btnPreviewSyllables')?.addEventListener('click', () => {
+        const area = document.getElementById('lyricsTextInput');
+        const mode = document.getElementById('lyricsModeSelect')?.value || 'syllables';
+        if (area && area.value.trim()) {
+            area.value = LyricsAligner.previewSyllableBreakdown(area.value, mode);
         }
     });
 
-    // Audio Mode & MIDI Audition Handlers
-    const audioModeSelect = document.getElementById('audioModeSelect');
-    const highwayAudioModeSelect = document.getElementById('highwayAudioModeSelect');
-
-    function syncAudioMode(val) {
-        state.audioEngine.setAudioMode(val);
-        if (audioModeSelect) audioModeSelect.value = val;
-        if (highwayAudioModeSelect) highwayAudioModeSelect.value = val;
-    }
-
-    if (audioModeSelect) {
-        audioModeSelect.addEventListener('change', (e) => {
-            syncAudioMode(e.target.value);
-            showToast(`Modo: ${e.target.selectedOptions[0].text}`, 'info');
-        });
-    }
-
-    if (highwayAudioModeSelect) {
-        highwayAudioModeSelect.addEventListener('change', (e) => {
-            syncAudioMode(e.target.value);
-            showToast(`Modo: ${e.target.selectedOptions[0].text}`, 'info');
-        });
-    }
-
-    const midiAuditionSelect = document.getElementById('midiAuditionSelect');
-    if (midiAuditionSelect) {
-        midiAuditionSelect.addEventListener('change', (e) => {
-            state.audioEngine.setMidiAudition(e.target.value);
-            showToast(`Audición: ${e.target.selectedOptions[0].text}`, 'info');
-        });
-    }
-
-    // Global Offset Handler & Nudge Buttons
-    const audioOffsetInput = document.getElementById('audioOffsetMs');
-    if (audioOffsetInput) {
-        audioOffsetInput.addEventListener('change', (e) => {
-            updateOffset(parseInt(e.target.value) || 0);
-        });
-    }
-
-    function updateOffset(ms) {
-        state.metadata.offsetMs = ms;
-        if (audioOffsetInput) audioOffsetInput.value = ms;
-        state.audioEngine.setGlobalOffset(ms);
-        redrawAudioWaveform();
-        showToast(`Offset: ${ms} ms`, 'info');
-    }
-
-    const btnNudgeReset = document.getElementById('btnNudgeReset');
-    if (btnNudgeReset) btnNudgeReset.addEventListener('click', () => updateOffset(0));
-    const btnNudgeM50 = document.getElementById('btnNudgeMinus50');
-    if (btnNudgeM50) btnNudgeM50.addEventListener('click', () => updateOffset(state.metadata.offsetMs - 50));
-    const btnNudgeM10 = document.getElementById('btnNudgeMinus10');
-    if (btnNudgeM10) btnNudgeM10.addEventListener('click', () => updateOffset(state.metadata.offsetMs - 10));
-    const btnNudgeP10 = document.getElementById('btnNudgePlus10');
-    if (btnNudgeP10) btnNudgeP10.addEventListener('click', () => updateOffset(state.metadata.offsetMs + 10));
-    const btnNudgeP50 = document.getElementById('btnNudgePlus50');
-    if (btnNudgeP50) btnNudgeP50.addEventListener('click', () => updateOffset(state.metadata.offsetMs + 50));
-
-    // Audio Waveform & Vocal Roll Render Loop
-    function redrawAudioWaveform() {
-        const canvas = document.getElementById('audioWaveformCanvas');
-        if (!canvas || canvas.offsetParent === null) return;
-        if (canvas.clientWidth > 0 && canvas.width !== canvas.clientWidth) {
-            canvas.width = canvas.clientWidth;
-        }
-        const cur = state.audioEngine.getCurrentTime();
-        state.audioEngine.drawWaveform(canvas, state.midiData, state.metadata.offsetMs, cur);
-    }
-
-    function redrawVocalRoll() {
-        const canvas = document.getElementById('vocalRollCanvas');
-        if (!canvas || !state.midiData || canvas.offsetParent === null) return;
-        if (canvas.clientWidth > 0 && canvas.width !== canvas.clientWidth) {
-            canvas.width = canvas.clientWidth;
-        }
-        const ctx = canvas.getContext('2d');
-        const w = canvas.width;
-        const h = canvas.height;
-
-        ctx.clearRect(0, 0, w, h);
-
-        ctx.fillStyle = '#080d1a';
-        ctx.fillRect(0, 0, w, h);
-
-        const vocalTrackId = parseInt(document.getElementById('vocalTrackSelect')?.value);
-        const vocalTrack = state.midiData.tracks.find(t => t.id === vocalTrackId);
-        const notes = vocalTrack ? vocalTrack.notes : [];
-
-        const countEl = document.getElementById('vocalPreviewNoteCount');
-        if (countEl) countEl.textContent = `${notes.length} notas vocales`;
-
-        if (notes.length === 0) {
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '13px system-ui, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Seleccione una pista vocal para previsualizar melodía y sílabas', w / 2, h / 2 + 5);
+    document.getElementById('btnImportMidiLyrics')?.addEventListener('click', () => {
+        if (!parsedMidi || !parsedMidi.embeddedLyrics.length) {
+            alert('Este archivo MIDI no contiene eventos de letra internos.');
             return;
         }
-
-        const totalDuration = state.midiData.totalDurationSec || 180;
-        const currentTime = state.audioEngine.getCurrentTime();
-
-        let minPitch = 127;
-        let maxPitch = 0;
-        notes.forEach(n => {
-            if (n.pitch < minPitch) minPitch = n.pitch;
-            if (n.pitch > maxPitch) maxPitch = n.pitch;
-        });
-        minPitch = Math.max(0, minPitch - 2);
-        maxPitch = Math.min(127, maxPitch + 2);
-        const pitchRange = Math.max(12, maxPitch - minPitch);
-
-        notes.forEach(n => {
-            const t0 = n.timeSec !== undefined ? n.timeSec : state.midiData.tickToSeconds(n.tick);
-            const tDur = n.durationSec !== undefined ? n.durationSec : (state.midiData.tickToSeconds(n.tick + n.durationTicks) - t0);
-            const x = (t0 / totalDuration) * w;
-            const noteW = Math.max(2, (tDur / totalDuration) * w);
-            const normPitch = (n.pitch - minPitch) / pitchRange;
-            const y = h - (normPitch * (h - 26)) - 18;
-
-            const isPlayingNote = currentTime >= t0 && currentTime <= t0 + tDur;
-            ctx.fillStyle = isPlayingNote ? '#00e676' : '#38bdf8';
-            ctx.fillRect(x, y, noteW, 6);
-        });
-
-        // Lyrics overlay
-        if (state.lyricEvents && state.lyricEvents.length > 0) {
-            ctx.fillStyle = '#ffea00';
-            ctx.font = '9px monospace';
-            ctx.textAlign = 'left';
-
-            state.lyricEvents.forEach(ev => {
-                if (ev.eventText && ev.eventText.startsWith('lyric ')) {
-                    const txt = ev.eventText.replace('lyric ', '').trim();
-                    const tSec = state.midiData.tickToSeconds(ev.tick);
-                    const x = (tSec / totalDuration) * w;
-                    ctx.fillText(txt, x, h - 4);
-                }
-            });
-        }
-
-        // Playhead cursor
-        if (currentTime > 0) {
-            const curX = (currentTime / totalDuration) * w;
-            ctx.strokeStyle = '#ff1744';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(curX, 0);
-            ctx.lineTo(curX, h);
-            ctx.stroke();
-        }
-    }
-
-    // Periodic redrawing of waveform & vocal roll
-    setInterval(() => {
-        redrawAudioWaveform();
-        redrawVocalRoll();
-    }, 75);
-
-    // Lyrics Sincronizer
-    document.getElementById('btnAlignLyrics').addEventListener('click', () => {
-        if (!state.midiData) {
-            showToast('Cargue un archivo MIDI primero', 'warning');
-            return;
-        }
-
-        const trackSelect = document.getElementById('vocalTrackSelect');
-        const trackId = parseInt(trackSelect.value);
-        if (isNaN(trackId)) {
-            showToast('Seleccione una pista vocal', 'warning');
-            return;
-        }
-
-        const vocalTrack = state.midiData.tracks.find(t => t.id === trackId);
-        if (!vocalTrack || vocalTrack.notes.length === 0) {
-            showToast('La pista seleccionada no contiene notas', 'warning');
-            return;
-        }
-
-        const rawText = document.getElementById('lyricsTextInput').value;
-        if (!rawText.trim()) {
-            showToast('Ingrese la letra en el cuadro de texto', 'warning');
-            return;
-        }
-
-        const mode = document.getElementById('lyricsModeSelect').value;
-        const events = LyricsEngine.alignLyricsToVocalTrack(rawText, vocalTrack.notes, state.midiData.ppq, { mode });
-        state.lyricEvents = events;
-
-        // Render generated events table
-        renderLyricsTable(events);
-
-        // Update Highway
-        state.highway.setSongData(state.midiData, state.allCharts, state.lyricEvents);
-
-        document.getElementById('lyricsStatusBadge').textContent = `${events.length} sílabas sincronizadas`;
-        document.getElementById('lyricsStatusBadge').className = 'badge badge-success';
-        redrawVocalRoll();
-        showToast('Sílabas sincronizadas con éxito', 'success');
+        const text = parsedMidi.embeddedLyrics.map(e => e.text).join(' ');
+        document.getElementById('lyricsTextInput').value = text;
     });
 
-    function renderLyricsTable(events) {
+    const syncLyricsNow = () => {
+        if (!parsedMidi) return;
+        const trkId = parseInt(document.getElementById('vocalTrackSelect')?.value || '0', 10);
+        const trk = parsedMidi.tracks[trkId];
+        if (!trk) return;
+
+        const rawText = document.getElementById('lyricsTextInput')?.value || '';
+        const mode = document.getElementById('lyricsModeSelect')?.value || 'syllables';
+        const res = LyricsAligner.alignLyricsToTrack(parsedMidi, trk.notes, rawText, mode);
+
+        lyricEvents = res.events;
+        syllableByNoteIdx = res.syllableByNoteIdx;
+
+        document.getElementById('lyricCountLabel').textContent = lyricEvents.length;
+        document.getElementById('lyricsStatusBadge').textContent = `Letras: ${lyricEvents.filter(e => e.type === 'lyric').length} silabas`;
+
         const tbody = document.getElementById('lyricsEventsBody');
         tbody.innerHTML = '';
-
-        const displayEvents = events.filter(e => e.eventText && (e.eventText.startsWith('lyric ') || e.eventText.startsWith('section ')));
-        const maxDisplay = Math.min(80, displayEvents.length);
-
-        if (displayEvents.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">No se han generado eventos de letra ni secciones aún.</td></tr>`;
-            return;
-        }
-
-        for (let i = 0; i < maxDisplay; i++) {
-            const ev = displayEvents[i];
-            const sec = state.midiData ? state.midiData.tickToSeconds(ev.tick) : 0;
-            const isSection = ev.eventText.startsWith('section ');
+        lyricEvents.slice(0, 300).forEach(ev => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><code>${ev.tick}</code></td>
-                <td><small style="color: #cbd5e1;">${formatTime(sec)}</small></td>
-                <td><span class="badge ${isSection ? 'badge-warning' : 'badge-notes'}">${isSection ? 'Sección' : 'Lírica'}</span></td>
-                <td><strong style="color: #ffffff;">${isSection ? ev.eventText.replace('section ', '[Sección: ') + ']' : ev.eventText.replace('lyric ', '')}</strong></td>
+                <td class="font-monospace">${ev.tick}</td>
+                <td class="font-monospace">${ev.timeSec.toFixed(2)}s</td>
+                <td><span class="badge badge-notes">${ev.type}</span></td>
+                <td class="fw-semibold">${ev.text}</td>
             `;
             tbody.appendChild(tr);
-        }
+        });
+    };
 
-        if (displayEvents.length > 80) {
+    document.getElementById('btnAlignLyrics')?.addEventListener('click', syncLyricsNow);
+
+    document.getElementById('btnPlayVocalPreview')?.addEventListener('click', () => {
+        if (!parsedMidi) return;
+        const trkId = parseInt(document.getElementById('vocalTrackSelect')?.value || '0', 10);
+        if (audioManager.isPlaying) {
+            audioManager.pause();
+        } else {
+            const firstTick = parsedMidi.tracks[trkId]?.notes[0]?.tick || 0;
+            audioManager.seek(Math.max(0, parsedMidi.tickToSeconds(firstTick) - 0.2));
+            audioManager.play(trkId);
+        }
+        updatePlayButtonLabels();
+    });
+
+    const renderSectionsTable = () => {
+        const tbody = document.getElementById('sectionsListBody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        sections.sort((a, b) => a.tick - b.tick);
+        sections.forEach((sec, idx) => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="4" class="text-center text-muted">... y ${displayEvents.length - 80} eventos más sincronizados</td>`;
+            tr.innerHTML = `
+                <td class="font-monospace">${sec.tick}</td>
+                <td>${sec.name}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-del-sec" data-idx="${idx}">X</button>
+                </td>
+            `;
             tbody.appendChild(tr);
-        }
-    }
+        });
+        tbody.querySelectorAll('.btn-del-sec').forEach(btn => {
+            btn.addEventListener('click', () => {
+                sections.splice(parseInt(btn.dataset.idx, 10), 1);
+                renderSectionsTable();
+            });
+        });
+    };
 
-    // Metadata Form Handlers
-    function updateMetadataForm() {
-        const setVal = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.value = (val !== undefined && val !== null) ? val : '';
-        };
-        const setCheck = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.checked = !!val;
-        };
-
-        const m = state.metadata;
-        setVal('metaName', m.name);
-        setVal('metaArtist', m.artist);
-        setVal('metaAlbum', m.album);
-        setVal('metaAlbumTrack', m.albumTrack);
-        setVal('metaYear', m.year);
-        setVal('metaGenre', m.genre);
-        setVal('metaSubGenre', m.subGenre);
-        setVal('metaTags', m.tags);
-        setVal('metaLocation', m.location);
-        setVal('metaRating', m.rating);
-        setVal('metaPlaylist', m.playlist);
-        setVal('metaCharter', m.charter);
-        setVal('metaIcon', m.icon);
-        setVal('metaLoadingPhrase', m.loadingPhrase);
-
-        setVal('metaDiffBand', m.diffBand);
-        setVal('metaDiffGuitar', m.diffGuitar);
-        setVal('metaDiffGuitarGhl', m.diffGuitarGhl);
-        setVal('metaDiffGuitarCoop', m.diffGuitarCoop);
-        setVal('metaDiffBass', m.diffBass);
-        setVal('metaDiffBassGhl', m.diffBassGhl);
-        setVal('metaDiffRhythm', m.diffRhythm);
-        setVal('metaDiffRhythmGhl', m.diffRhythmGhl);
-        setVal('metaDiffDrums', m.diffDrums);
-        setVal('metaDiffDrumsReal', m.diffDrumsReal);
-        setVal('metaDiffEliteDrums', m.diffEliteDrums);
-        setVal('metaDiffKeys', m.diffKeys);
-        setVal('metaDiffKeysReal', m.diffKeysReal);
-        setVal('metaDiffVocals', m.diffVocals);
-        setVal('metaDiffVocalsHarm', m.diffVocalsHarm);
-        setVal('metaDiffDance', m.diffDance);
-
-        setCheck('metaProDrums', m.proDrums);
-        setCheck('metaFiveLaneDrums', m.fiveLaneDrums);
-        setCheck('metaGhwtDeReady', m.ghwtDeReady);
-        setVal('metaPartsVocalsHarm', m.partsVocalsHarm);
-        setVal('metaVocalScrollSpeed', m.vocalScrollSpeed);
-        setVal('metaModchart', m.modchart);
-        setVal('metaVideoStartTime', m.videoStartTime);
-
-        setVal('metaCreditComposedBy', m.creditComposedBy);
-        setVal('metaCreditProducedBy', m.creditProducedBy);
-        setVal('metaCreditMixedBy', m.creditMixedBy);
-        setVal('metaCreditMasteredBy', m.creditMasteredBy);
-        setVal('metaCreditEngineeredBy', m.creditEngineeredBy);
-        setVal('metaCreditAlbumArtBy', m.creditAlbumArtBy);
-        setVal('metaCreditLicense', m.creditLicense);
-
-        setVal('metaLinkSpotify', m.linkSpotify);
-        setVal('metaLinkYoutube', m.linkYoutube);
-        setVal('metaLinkBandcamp', m.linkBandcamp);
-        setVal('metaLinkSoundcloud', m.linkSoundcloud);
-        setVal('metaLinkTwitter', m.linkTwitter);
-        setVal('metaLinkInstagram', m.linkInstagram);
-    }
-
-    function syncMetadataFromForm() {
-        const getVal = (id, def = '') => {
-            const el = document.getElementById(id);
-            return el ? el.value : def;
-        };
-        const getNum = (id, def = 0) => {
-            const el = document.getElementById(id);
-            return el ? (parseInt(el.value) || def) : def;
-        };
-        const getCheck = (id, def = false) => {
-            const el = document.getElementById(id);
-            return el ? el.checked : def;
-        };
-
-        const m = state.metadata;
-        m.name = getVal('metaName', 'Song Title');
-        m.artist = getVal('metaArtist', 'Artist');
-        m.album = getVal('metaAlbum', 'Album');
-        m.albumTrack = getNum('metaAlbumTrack', 1);
-        m.year = getVal('metaYear', '2024');
-        m.genre = getVal('metaGenre', 'Rock');
-        m.subGenre = getVal('metaSubGenre', 'Alternative');
-        m.tags = getVal('metaTags', '');
-        m.location = getVal('metaLocation', '');
-        m.rating = getNum('metaRating', 1);
-        m.playlist = getVal('metaPlaylist', '');
-        m.charter = getVal('metaCharter', 'Chart-Lab');
-        m.icon = getVal('metaIcon', 'chartlab');
-        m.loadingPhrase = getVal('metaLoadingPhrase', 'Charted with Chart-Lab Suite');
-
-        m.diffBand = getNum('metaDiffBand', 2);
-        m.diffGuitar = getNum('metaDiffGuitar', 3);
-        m.diffGuitarGhl = getNum('metaDiffGuitarGhl', 0);
-        m.diffGuitarCoop = getNum('metaDiffGuitarCoop', 0);
-        m.diffBass = getNum('metaDiffBass', 2);
-        m.diffBassGhl = getNum('metaDiffBassGhl', 0);
-        m.diffRhythm = getNum('metaDiffRhythm', 0);
-        m.diffRhythmGhl = getNum('metaDiffRhythmGhl', 0);
-        m.diffDrums = getNum('metaDiffDrums', 3);
-        m.diffDrumsReal = getNum('metaDiffDrumsReal', 3);
-        m.diffEliteDrums = getNum('metaDiffEliteDrums', 0);
-        m.diffKeys = getNum('metaDiffKeys', 0);
-        m.diffKeysReal = getNum('metaDiffKeysReal', 0);
-        m.diffVocals = getNum('metaDiffVocals', 3);
-        m.diffVocalsHarm = getNum('metaDiffVocalsHarm', 0);
-        m.diffDance = getNum('metaDiffDance', 0);
-
-        m.proDrums = getCheck('metaProDrums', true);
-        m.fiveLaneDrums = getCheck('metaFiveLaneDrums', false);
-        m.ghwtDeReady = getCheck('metaGhwtDeReady', false);
-        m.partsVocalsHarm = getNum('metaPartsVocalsHarm', 1);
-        m.vocalScrollSpeed = getNum('metaVocalScrollSpeed', 100);
-        m.modchart = getNum('metaModchart', 0);
-        m.videoStartTime = getNum('metaVideoStartTime', 0);
-
-        m.creditComposedBy = getVal('metaCreditComposedBy', '');
-        m.creditProducedBy = getVal('metaCreditProducedBy', '');
-        m.creditMixedBy = getVal('metaCreditMixedBy', '');
-        m.creditMasteredBy = getVal('metaCreditMasteredBy', '');
-        m.creditEngineeredBy = getVal('metaCreditEngineeredBy', '');
-        m.creditAlbumArtBy = getVal('metaCreditAlbumArtBy', '');
-        m.creditLicense = getVal('metaCreditLicense', '');
-
-        m.linkSpotify = getVal('metaLinkSpotify', '');
-        m.linkYoutube = getVal('metaLinkYoutube', '');
-        m.linkBandcamp = getVal('metaLinkBandcamp', '');
-        m.linkSoundcloud = getVal('metaLinkSoundcloud', '');
-        m.linkTwitter = getVal('metaLinkTwitter', '');
-        m.linkInstagram = getVal('metaLinkInstagram', '');
-
-        m.songLengthMs = state.midiData ? Math.round(state.midiData.totalDurationSec * 1000) : 180000;
-    }
-
-    // Album art upload
-    document.getElementById('albumArtInput').addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            state.albumArtBlob = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (re) => {
-                document.getElementById('albumArtPreview').src = re.target.result;
-            };
-            reader.readAsDataURL(state.albumArtBlob);
-            showToast('Portada de álbum seleccionada', 'info');
-        }
+    document.getElementById('btnAutoSections')?.addEventListener('click', () => {
+        sections = LyricsAligner.autoGenerateSections(parsedMidi);
+        renderSectionsTable();
     });
 
-    // 1-Click Export Handlers
-    document.getElementById('btnExportZip').addEventListener('click', async () => {
-        if (!state.midiData) {
-            showToast('Cargue un archivo MIDI primero', 'warning');
-            return;
-        }
+    document.getElementById('btnAddSection')?.addEventListener('click', () => {
+        const measure = Math.max(1, parseInt(document.getElementById('newSectionMeasure')?.value || '1', 10));
+        const name = (document.getElementById('newSectionName')?.value || '').trim();
+        if (!name) return;
+        const res = parsedMidi ? parsedMidi.resolution : 480;
+        sections.push({ tick: (measure - 1) * res * 4, name });
+        document.getElementById('newSectionName').value = '';
+        renderSectionsTable();
+    });
 
-        syncMetadataFromForm();
+    // 5. Pestaña Audio y Sincronización
+    const stemKeys = ['song', 'guitar', 'bass', 'drums', 'vocals', 'keys'];
+    stemKeys.forEach(key => {
+        const fileIn = document.getElementById(`stemFile_${key}`);
+        const muteBtn = document.getElementById(`stemMute_${key}`);
+        const soloBtn = document.getElementById(`stemSolo_${key}`);
+        const nameLbl = document.getElementById(`stemName_${key}`);
 
-        state.metadata.hasGuitarStem = !!state.audioEngine.stems.guitar.file;
-        state.metadata.hasBassStem = !!state.audioEngine.stems.bass.file;
-        state.metadata.hasDrumsStem = !!state.audioEngine.stems.drums.file;
-        state.metadata.hasVocalsStem = !!state.audioEngine.stems.vocals.file;
-        state.metadata.hasKeysStem = !!state.audioEngine.stems.keys.file;
-
-        const chartText = PackageExporter.generateChartFile(state.midiData, state.allCharts, state.lyricEvents, state.metadata);
-        const songIniText = PackageExporter.generateSongIni(state.metadata);
-
-        const stems = {};
-        for (let k in state.audioEngine.stems) {
-            if (state.audioEngine.stems[k].file) {
-                stems[`${k}.wav`] = state.audioEngine.stems[k].file;
+        fileIn?.addEventListener('change', async (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            nameLbl.textContent = `Cargando ${f.name}...`;
+            try {
+                const dur = await audioManager.loadStemFile(key, f);
+                nameLbl.textContent = `${f.name} (${dur.toFixed(1)}s)`;
+            } catch (err) {
+                nameLbl.textContent = `Error en formato de audio`;
             }
-        }
+        });
 
-        try {
-            document.getElementById('btnExportZip').disabled = true;
-            document.getElementById('btnExportZip').textContent = 'Empaquetando ZIP...';
+        muteBtn?.addEventListener('click', () => {
+            if (!audioManager.stems[key]) return;
+            audioManager.stems[key].mute = !audioManager.stems[key].mute;
+            muteBtn.classList.toggle('active', audioManager.stems[key].mute);
+            if (audioManager.isPlaying) audioManager.seek(audioManager.getCurrentTimeSec());
+        });
 
-            let artBlob = state.albumArtBlob;
-            if (!artBlob) {
-                artBlob = await PackageExporter.generatePlaceholderAlbumArt(state.metadata.name, state.metadata.artist);
-            }
-
-            const zipBlob = await PackageExporter.packageZip(chartText, songIniText, artBlob, stems, state.metadata);
-            const safeName = `${state.metadata.artist} - ${state.metadata.name}`.replace(/[\\/:*?"<>|]/g, '');
-            PackageExporter.triggerDownload(zipBlob, `${safeName}.zip`);
-
-            showToast('Paquete ZIP descargado con éxito', 'success');
-        } catch (err) {
-            console.error(err);
-            alert('Error al generar el ZIP: ' + err.message);
-        } finally {
-            document.getElementById('btnExportZip').disabled = false;
-            document.getElementById('btnExportZip').textContent = 'Descargar Paquete ZIP';
-        }
+        soloBtn?.addEventListener('click', () => {
+            if (!audioManager.stems[key]) return;
+            audioManager.stems[key].solo = !audioManager.stems[key].solo;
+            soloBtn.classList.toggle('active', audioManager.stems[key].solo);
+            if (audioManager.isPlaying) audioManager.seek(audioManager.getCurrentTimeSec());
+        });
     });
 
-    document.getElementById('btnExportChartOnly').addEventListener('click', () => {
-        if (!state.midiData) {
-            showToast('Cargue un archivo MIDI primero', 'warning');
-            return;
-        }
-        syncMetadataFromForm();
-        const chartText = PackageExporter.generateChartFile(state.midiData, state.allCharts, state.lyricEvents, state.metadata);
-        const blob = new Blob([chartText], { type: 'text/plain;charset=utf-8' });
-        PackageExporter.triggerDownload(blob, 'notes.chart');
-        showToast('notes.chart descargado', 'success');
+    document.getElementById('audioSourceMode')?.addEventListener('change', (e) => {
+        audioManager.sourceMode = e.target.value;
+        if (audioManager.isPlaying) audioManager.seek(audioManager.getCurrentTimeSec());
     });
 
-    document.getElementById('btnExportIniOnly').addEventListener('click', () => {
-        syncMetadataFromForm();
-        const iniText = PackageExporter.generateSongIni(state.metadata);
-        const blob = new Blob([iniText], { type: 'text/plain;charset=utf-8' });
-        PackageExporter.triggerDownload(blob, 'song.ini');
-        showToast('song.ini descargado', 'success');
+    const offsetInput = document.getElementById('audioOffsetMs');
+    offsetInput?.addEventListener('input', () => {
+        audioManager.offsetMs = parseInt(offsetInput.value || '0', 10);
+    });
+    document.getElementById('btnOffsetMinus10')?.addEventListener('click', () => {
+        offsetInput.value = parseInt(offsetInput.value || '0', 10) - 10;
+        audioManager.offsetMs = parseInt(offsetInput.value, 10);
+    });
+    document.getElementById('btnOffsetPlus10')?.addEventListener('click', () => {
+        offsetInput.value = parseInt(offsetInput.value || '0', 10) + 10;
+        audioManager.offsetMs = parseInt(offsetInput.value, 10);
     });
 
-    document.getElementById('btnViewChartText').addEventListener('click', () => {
-        if (!state.midiData) {
-            showToast('Cargue un archivo MIDI primero', 'warning');
-            return;
+    document.getElementById('midiSynthVolume')?.addEventListener('input', (e) => {
+        document.getElementById('midiVolLabel').textContent = `${e.target.value}%`;
+        audioManager.midiVolume = parseInt(e.target.value, 10) / 100;
+    });
+
+    document.getElementById('masterStemVolume')?.addEventListener('input', (e) => {
+        document.getElementById('stemVolLabel').textContent = `${e.target.value}%`;
+        audioManager.stemMasterVolume = parseInt(e.target.value, 10) / 100;
+        if (audioManager.isPlaying) audioManager.seek(audioManager.getCurrentTimeSec());
+    });
+
+    // 6. Controles de Reproducción y Bucle de Renderizado (60 FPS)
+    const updatePlayButtonLabels = () => {
+        const label = audioManager.isPlaying ? 'Pausar' : 'Reproducir';
+        const btn1 = document.getElementById('btnPlayPause');
+        const btn2 = document.getElementById('btnAudioTabPlay');
+        if (btn1) btn1.textContent = label;
+        if (btn2) btn2.textContent = audioManager.isPlaying ? 'Pausar Prueba' : 'Reproducir Prueba';
+    };
+
+    const toggleMainPlayback = () => {
+        if (audioManager.isPlaying) audioManager.pause();
+        else audioManager.play(null);
+        updatePlayButtonLabels();
+    };
+
+    document.getElementById('btnPlayPause')?.addEventListener('click', toggleMainPlayback);
+    document.getElementById('btnAudioTabPlay')?.addEventListener('click', toggleMainPlayback);
+    document.getElementById('btnRestartVis')?.addEventListener('click', () => {
+        audioManager.seek(0);
+    });
+
+    const scrubber = document.getElementById('timeScrubber');
+    scrubber?.addEventListener('input', () => {
+        const targetSec = (parseFloat(scrubber.value) / 100) * audioManager.durationSec;
+        audioManager.seek(targetSec);
+    });
+
+    document.getElementById('playbackRateSelect')?.addEventListener('change', (e) => {
+        audioManager.playbackRate = parseFloat(e.target.value || '1.0');
+        if (audioManager.isPlaying) audioManager.seek(audioManager.getCurrentTimeSec());
+    });
+
+    const metroBtn = document.getElementById('btnMetronomeToggle');
+    metroBtn?.addEventListener('click', () => {
+        audioManager.metronomeEnabled = !audioManager.metronomeEnabled;
+        metroBtn.textContent = `Metronomo: ${audioManager.metronomeEnabled ? 'ON' : 'OFF'}`;
+    });
+
+    const formatTime = (sec) => {
+        const m = Math.floor(sec / 60);
+        const s = (sec % 60).toFixed(1).padStart(4, '0');
+        return `${m}:${s}`;
+    };
+
+    const renderLoop = () => {
+        const curSec = audioManager.getCurrentTimeSec();
+        const durSec = Math.max(1, audioManager.durationSec);
+
+        if (scrubber && document.activeElement !== scrubber) {
+            scrubber.value = ((curSec / durSec) * 100).toFixed(2);
         }
-        syncMetadataFromForm();
-        const chartText = PackageExporter.generateChartFile(state.midiData, state.allCharts, state.lyricEvents, state.metadata);
-        document.getElementById('chartTextPreview').value = chartText;
+        const timeDisp = document.getElementById('timeDisplay');
+        if (timeDisp) {
+            timeDisp.textContent = `${formatTime(curSec)} / ${formatTime(durSec)}`;
+        }
+
+        // 1. Renderizar Highway 3D
+        const visInst = document.getElementById('highwayInstSelect')?.value || 'guitar';
+        const visDiff = document.getElementById('highwayDiffSelect')?.value || 'Expert';
+        const visSpeed = parseFloat(document.getElementById('highwaySpeedSelect')?.value || '1.8');
+        const instMeta = CharterEngine.INSTRUMENTS[visInst] || CharterEngine.INSTRUMENTS.guitar;
+        const activeNotes = (generatedCharts[visInst] && generatedCharts[visInst][visDiff])
+            ? generatedCharts[visInst][visDiff].notes
+            : [];
+
+        visualizer.renderHighway(activeNotes, lyricEvents, curSec, visSpeed, instMeta.lanes, instMeta.isGhl);
+
+        // 2. Renderizar Inspector de Espectro y Sincronización
+        const zoomSec = parseFloat(document.getElementById('waveformZoom')?.value || '8');
+        visualizer.renderWaveformSync(
+            audioManager.waveformPeaks,
+            durSec,
+            audioManager.beatTimesSec,
+            curSec,
+            audioManager.offsetMs,
+            zoomSec
+        );
+
+        // 3. Renderizar Cinta Vocal
+        const vTrkId = parseInt(document.getElementById('vocalTrackSelect')?.value || '0', 10);
+        const vNotesRaw = (parsedMidi && parsedMidi.tracks[vTrkId]) ? parsedMidi.tracks[vTrkId].notes : [];
+        const vNotesTimed = vNotesRaw.map(n => ({
+            pitch: n.pitch,
+            timeSec: parsedMidi.tickToSeconds(n.tick),
+            durationSec: Math.max(0.08, parsedMidi.tickToSeconds(n.tick + n.durationTicks) - parsedMidi.tickToSeconds(n.tick))
+        }));
+        const ribbonScroll = audioManager.isPlaying
+            ? (curSec / durSec)
+            : (parseFloat(document.getElementById('vocalRibbonScroll')?.value || '0') / 100);
+        visualizer.renderVocalRibbon(vNotesTimed, syllableByNoteIdx, ribbonScroll, durSec);
+
+        requestAnimationFrame(renderLoop);
+    };
+    requestAnimationFrame(renderLoop);
+
+    // 7. Recolección de Metadatos y Exportación
+    const collectMetadata = () => ({
+        name: document.getElementById('metaName')?.value || 'Song Title',
+        artist: document.getElementById('metaArtist')?.value || 'Artist',
+        album: document.getElementById('metaAlbum')?.value || 'Album',
+        albumTrack: document.getElementById('metaAlbumTrack')?.value || '1',
+        year: document.getElementById('metaYear')?.value || '2026',
+        genre: document.getElementById('metaGenre')?.value || 'Rock',
+        subGenre: document.getElementById('metaSubGenre')?.value || '',
+        charter: document.getElementById('metaCharter')?.value || 'Chart-Lab',
+        previewStart: document.getElementById('metaPreviewStart')?.value || '15000',
+        delayMs: document.getElementById('audioOffsetMs')?.value || '0',
+        icon: document.getElementById('metaIcon')?.value || 'chartlab',
+        playlist: document.getElementById('metaPlaylist')?.value || '',
+        loadingPhrase: document.getElementById('metaLoadingPhrase')?.value || '',
+        diffBand: parseInt(document.getElementById('metaDiffBand')?.value || '3', 10),
+        diffGuitar: parseInt(document.getElementById('metaDiffGuitar')?.value || '3', 10),
+        diffBass: parseInt(document.getElementById('metaDiffBass')?.value || '2', 10),
+        diffRhythm: parseInt(document.getElementById('metaDiffRhythm')?.value || '-1', 10),
+        diffGuitarCoop: parseInt(document.getElementById('metaDiffGuitarCoop')?.value || '-1', 10),
+        diffGuitarGhl: parseInt(document.getElementById('metaDiffGuitarGhl')?.value || '-1', 10),
+        diffBassGhl: parseInt(document.getElementById('metaDiffBassGhl')?.value || '-1', 10),
+        diffDrums: parseInt(document.getElementById('metaDiffDrums')?.value || '3', 10),
+        diffDrumsReal: parseInt(document.getElementById('metaDiffDrumsReal')?.value || '3', 10),
+        diffKeys: parseInt(document.getElementById('metaDiffKeys')?.value || '-1', 10),
+        diffVocals: parseInt(document.getElementById('metaDiffVocals')?.value || '2', 10),
+        diffVocalsHarm: parseInt(document.getElementById('metaDiffVocalsHarm')?.value || '-1', 10),
+        diffDance: parseInt(document.getElementById('metaDiffDance')?.value || '-1', 10),
+        proDrums: document.getElementById('metaProDrums')?.checked ?? true,
+        fiveLaneDrums: document.getElementById('metaFiveLaneDrums')?.checked ?? false,
+        sustainCutoff: document.getElementById('metaSustainCutoff')?.checked ?? false,
+        ghwtDeReady: document.getElementById('metaGhwtDeReady')?.checked ?? false,
+        creditComposedBy: document.getElementById('metaCreditComposedBy')?.value || '',
+        creditProducedBy: document.getElementById('metaCreditProducedBy')?.value || '',
+        linkSpotify: document.getElementById('metaLinkSpotify')?.value || '',
+        linkYoutube: document.getElementById('metaLinkYoutube')?.value || ''
+    });
+
+    document.getElementById('btnExportZip')?.addEventListener('click', async () => {
+        const meta = collectMetadata();
+        const chartStr = PackageExporter.buildChartString(parsedMidi, generatedCharts, lyricEvents, sections, meta);
+        const iniStr = PackageExporter.buildSongIniString(meta, audioManager.durationSec * 1000);
+        await PackageExporter.exportZipPackage(chartStr, iniStr, albumCanvas, audioManager.stems, meta);
+    });
+
+    document.getElementById('btnExportChartOnly')?.addEventListener('click', () => {
+        const meta = collectMetadata();
+        const chartStr = PackageExporter.buildChartString(parsedMidi, generatedCharts, lyricEvents, sections, meta);
+        PackageExporter.triggerDownload(new Blob([chartStr], { type: 'text/plain;charset=utf-8' }), 'notes.chart');
+    });
+
+    document.getElementById('btnExportIniOnly')?.addEventListener('click', () => {
+        const meta = collectMetadata();
+        const iniStr = PackageExporter.buildSongIniString(meta, audioManager.durationSec * 1000);
+        PackageExporter.triggerDownload(new Blob([iniStr], { type: 'text/plain;charset=utf-8' }), 'song.ini');
+    });
+
+    document.getElementById('btnViewChartText')?.addEventListener('click', () => {
+        const meta = collectMetadata();
+        const chartStr = PackageExporter.buildChartString(parsedMidi, generatedCharts, lyricEvents, sections, meta);
+        document.getElementById('chartTextPreview').value = chartStr;
         const modal = new bootstrap.Modal(document.getElementById('chartPreviewModal'));
         modal.show();
     });
 
-    document.getElementById('btnCopyChartText').addEventListener('click', () => {
-        const text = document.getElementById('chartTextPreview').value;
-        navigator.clipboard.writeText(text);
-        showToast('Contenido copiado al portapapeles', 'info');
+    document.getElementById('btnCopyChartText')?.addEventListener('click', () => {
+        const txt = document.getElementById('chartTextPreview')?.value || '';
+        navigator.clipboard.writeText(txt);
     });
-
-    // Helper: Toast alerts
-    function showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = `alert alert-${type} shadow-lg`;
-        toast.style.position = 'fixed';
-        toast.style.bottom = '20px';
-        toast.style.right = '20px';
-        toast.style.zIndex = '9999';
-        toast.style.minWidth = '260px';
-        toast.style.animation = 'fadeIn 0.3s ease';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transition = 'opacity 0.5s ease';
-            setTimeout(() => toast.remove(), 500);
-        }, 3000);
-    }
 });

@@ -1,89 +1,47 @@
 # Chart-Lab
 
-Suite multiplataforma para análisis, generación y validación de charts para rhythm games (Clone Hero, YARG, Moonscraper y Phase Shift).
+Herramienta web y de línea de comandos para análisis de archivos MIDI, generación automatizada de charts multi-instrumento y empaquetado de canciones para Clone Hero, YARG, Phase Shift, Moonscraper y Guitar Hero World Tour: Definitive Edition.
 
-**Versión en línea lista para usar:**  
-👉 **[https://ey-liam.github.io/Chart-Lab/](https://ey-liam.github.io/Chart-Lab/)**
-
----
-
-## ¿Qué es y para qué sirve?
-
-**Chart-Lab** es una suite interactiva creada por **Ey-Liam** pensada como un laboratorio accesible y educativo. Su objetivo es ayudar a usuarios principiantes y casuales a crear sus propios charts y aprender en el proceso cómo funciona la estructura interna de notas, tempos y metadatos de los rhythm games (Clone Hero, YARG y próximamente Guitar Hero World Tour: Definitive Edition).
-
-No pretende sustituir el trabajo manual milimétrico de un charter dedicado en editores como Moonscraper, sino ofrecer un entorno amigable y sin barreras técnicas para experimentar, comprender el formato `.chart` / `song.ini` y disfrutar canciones jugables al instante a partir de pistas MIDI.
+**Aplicación web:** [https://ey-liam.github.io/Chart-Lab/](https://ey-liam.github.io/Chart-Lab/)
 
 ---
 
-## ¿Cómo funciona? (Uso en 3 pasos)
+## Propósito del Proyecto
 
-1. **Cargar el archivo MIDI:**
-   Arrastra tu archivo `.mid` o `.midi` a la plataforma. Chart-Lab analiza el tempo, compases y pistas automáticamente.
-2. **Revisar asignaciones y letras:**
-   * Las pistas se asignan automáticamente a sus instrumentos correspondientes (Guitarra Líder, Bajo, Batería Pro, Teclados, Voz, etc.).
-   * En la pestaña **Letras**, pega el texto de la canción; el motor divide el texto en sílabas y las enlaza a la melodía vocal con marcadores de frase (`phrase_start` y `phrase_end`).
-3. **Previsualizar y Exportar:**
-   * Prueba el chart en tiempo real con el **Visualizador 3D** (Highway interactivo con soporte de audio y stems).
-   * Pulsa **Descargar Paquete ZIP** para obtener la carpeta estructurada (`Artista - Canción [Charter]`) con `notes.chart`, `song.ini` completo y portada, lista para colocar en la carpeta `Songs/` del juego.
+**Chart-Lab** es un entorno interactivo desarrollado por **Ey-Liam** con un enfoque práctico y educativo. Su objetivo es facilitar a jugadores principiantes y creadores casuales la creación de sus propios charts a partir de archivos MIDI, permitiéndoles comprender la estructura interna de los archivos `.chart` y `song.ini` sin la curva de aprendizaje compleja de los editores profesionales dedicados.
 
 ---
 
-## ¿Cómo convierte las canciones?
+## Qué Puedes Hacer
 
-* **Mapeo Inteligente de Trastes:**
-  Analiza la dirección melódica y los saltos de octava para ubicar notas y acordes en posiciones naturales de tocar.
-* **Soporte Multi-Instrumento:**
-  * **Guitarra y Bajo (5 trastes):** Trastes verde a naranja, notas abiertas y acordes balanceados.
-  * **Guitar Hero Live (6 trastes):** Formato GHL de 2 filas de 3 botones (White 1-3 y Black 1-3).
-  * **Batería Pro & 5-Lane:** Inserción automática de platillos (Hi-Hat 64, Ride 65, Crash 66) y separación de bombo.
-  * **Vocales y Armonías:** Detección de melodía principal y coros (Harm 1, 2 y 3).
-  * **Pista de Baile:** Mapeo de ritmo a 4 paneles (Left, Down, Up, Right).
-* **4 Dificultades con Reglas Oficiales (CSC):**
-  * **Expert:** Transcripción completa con notas abiertas y acordes complejos.
-  * **Hard:** Cuantización a semicorcheas, acordes simplificados y sin notas abiertas.
-  * **Medium:** Cuantización a corcheas, máximo 2 notas por acorde y **sin nota naranja**.
-  * **Easy:** Cuantización a negras, notas individuales y **sin notas azul ni naranja**.
-* **Regla de 70 ms en Sustains:**
-  Aplica un margen de 70 ms antes de la siguiente nota para permitir reposicionar la mano sin perder puntuación.
-* **Validador Cero-Defectos:**
-  Audita el orden temporal (monotonicidad) y elimina colisiones de notas antes de la exportación para garantizar compatibilidad con EnChor y YARG.
+* **Enrutamiento y Conversión Multi-Instrumento:** Asigna pistas MIDI a Guitarra Líder, Guitarra Rítmica, Bajo, Guitarra Cooperativa, formato GHL (6 trastes), Batería (4 calles, 5 calles y Pro Drums con platillos y doble pedal), Teclados, Voz Principal, Armonías Vocales (HARM 1-3) y Pista de Baile.
+* **Generación de 4 Dificultades:** Crea automáticamente las dificultades Expert, Hard, Medium y Easy aplicando reglas de reducción de acordes, filtrado de trastes y recorte de notas sostenidas (margen de 70 ms).
+* **Sincronización de Letras y Secciones:** Divide letras en sílabas con soporte para modificadores vocales (`#`, `+`, `=`), genera frases (`phrase_start` / `phrase_end`) sobre la melodía MIDI y estructura secciones de práctica.
+* **Reproducción MIDI + Stems y Ajuste de Onda:** Escucha las pistas MIDI mediante el sintetizador interno, reproduce pistas de audio separadas (stems) o combina ambos mientras ajustas el desfase (offset) sobre el gráfico de forma de onda.
+* **Vista Previa 3D y Exportación Directa:** Previsualiza el chart en el visor 3D interactivo y descarga el paquete `.zip` con `notes.chart`, `song.ini`, audio y portada listo para la carpeta `Songs/`.
 
 ---
 
-## Opciones de Ejecución
+## Cómo Funciona (Flujo de Trabajo)
 
-### 1. Web Online (Recomendado)
-Accede directamente desde cualquier navegador moderno en cualquier sistema operativo:  
-👉 **[https://ey-liam.github.io/Chart-Lab/](https://ey-liam.github.io/Chart-Lab/)**
-
-### 2. Servidor Local (Node.js)
-```bash
-# Windows (doble clic o terminal)
-start.bat
-
-# Manual
-node server.js
-```
-Abre `http://localhost:3000` en el navegador.
-
-### 3. Línea de Comandos (Python CLI)
-```bash
-python python/cli.py <ruta-al-midi> --name "Nombre" --artist "Artista" --out ./output
-```
-
-### 4. Motor Java / Unity C#
-* **Java:** `cd java && mvn clean package` para ejecutar el conversor por lotes multiplataforma.
-* **Unity:** Importa la carpeta `unity_csharp/` para controladores de gameplay y shaders de carretera curva en Unity.
+1. **Cargar MIDI:** Sube un archivo `.mid` o `.midi` en la pestaña **Pistas e Instrumentos**. El sistema detecta el mapa de tempos, compases y rango tonal de cada canal.
+2. **Ajustar Instrumentos y Letras:** Selecciona el instrumento de destino para cada pista MIDI, ajusta los parámetros de densidad/acordes y, opcionalmente, sincroniza la letra en **Letras y Secciones**.
+3. **Sincronizar Audio y Exportar:** Carga el audio o los stems en **Audio y Sincronización**, verifica el alineamiento en el visor de onda o en el **Visualizador 3D**, completa los datos en **Metadatos y Exportación** y descarga el archivo `.zip`.
 
 ---
 
-## Autor y Créditos
+## Ejecución Local y Motores Auxiliares
 
-Desarrollado y creado por **Ey-Liam**.
+* **Servidor Web Local (Node.js):** Ejecuta `node server.js` y abre `http://localhost:3000`.
+* **CLI en Python:** Ejecuta `python python/cli.py archivo.mid --name "Cancion" --artist "Artista" --out ./output`.
+* **Motor Java:** Compila con `cd java && mvn clean package` y ejecuta `java -jar target/chart-lab-core.jar archivo.mid ./output`.
+* **Componentes Unity (C# / ShaderLab):** Importa el directorio `unity_csharp/` en Unity para el renderizado de autopista curva y lectura de `.chart`.
 
-## Licencia
+---
 
-Distribuido bajo la Licencia MIT. Consulta `LICENSE` para más información.
+## Autor y Licencia
+
+Creado y desarrollado por **Ey-Liam**. Distribuido bajo la licencia MIT.
 
 <br>
-<sub>Inspiración de ideas y conceptos: EFHIII y proyectos de la comunidad de rhythm gaming.</sub>
+<sub><small>Nota: El código de este proyecto ha sido escrito desde cero por Ey-Liam. Conceptos e ideas inspirados en herramientas de la comunidad como midi-ch (EFHIII), LyricEditor (TheBoxyBear), PenguinChartEditor, Chart-Forge y documentación técnica de RBN/CSC.</small></sub>

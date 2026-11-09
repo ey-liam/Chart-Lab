@@ -1,500 +1,211 @@
 /**
- * Chart-Lab - Clone Hero & YARG Package Exporter
- * Generates 100% compliant .chart, song.ini (matching official YARG standard),
- * and ready-to-play ZIP packages.
+ * Chart-Lab - Serializador de notes.chart, song.ini y Empaquetador ZIP
+ * Autor: Ey-Liam
  */
-(function(root, factory) {
-    if (typeof define === 'function' && define.amd) {
-        define([], factory);
-    } else if (typeof module === 'object' && module.exports) {
-        module.exports = factory();
-    } else {
-        root.PackageExporter = factory();
-        root.ChartExporter = factory();
-    }
-}(typeof self !== 'undefined' ? self : this, function() {
-    'use strict';
+class PackageExporter {
+    static buildChartString(parsedMidi, generatedCharts, lyricEvents, sections, meta) {
+        const res = parsedMidi ? parsedMidi.resolution : 480;
+        const lines = [];
 
-    const TRACK_HEADER_MAP = {
-        guitar: {
-            'Expert': 'ExpertSingle',
-            'Hard': 'HardSingle',
-            'Medium': 'MediumSingle',
-            'Easy': 'EasySingle'
-        },
-        guitarghl: {
-            'Expert': 'ExpertGHLGuitar',
-            'Hard': 'HardGHLGuitar',
-            'Medium': 'MediumGHLGuitar',
-            'Easy': 'EasyGHLGuitar'
-        },
-        bass: {
-            'Expert': 'ExpertDoubleBass',
-            'Hard': 'HardDoubleBass',
-            'Medium': 'MediumDoubleBass',
-            'Easy': 'EasyDoubleBass'
-        },
-        bassghl: {
-            'Expert': 'ExpertGHLBass',
-            'Hard': 'HardGHLBass',
-            'Medium': 'MediumGHLBass',
-            'Easy': 'EasyGHLBass'
-        },
-        rhythm: {
-            'Expert': 'ExpertRhythm',
-            'Hard': 'HardRhythm',
-            'Medium': 'MediumRhythm',
-            'Easy': 'EasyRhythm'
-        },
-        rhythmghl: {
-            'Expert': 'ExpertGHLRhythm',
-            'Hard': 'HardGHLRhythm',
-            'Medium': 'MediumGHLRhythm',
-            'Easy': 'EasyGHLRhythm'
-        },
-        guitar_coop: {
-            'Expert': 'ExpertGuitarCoop',
-            'Hard': 'HardGuitarCoop',
-            'Medium': 'MediumGuitarCoop',
-            'Easy': 'EasyGuitarCoop'
-        },
-        guitar_coop_ghl: {
-            'Expert': 'ExpertGHLCoop',
-            'Hard': 'HardGHLCoop',
-            'Medium': 'MediumGHLCoop',
-            'Easy': 'EasyGHLCoop'
-        },
-        keys: {
-            'Expert': 'ExpertKeyboard',
-            'Hard': 'HardKeyboard',
-            'Medium': 'MediumKeyboard',
-            'Easy': 'EasyKeyboard'
-        },
-        keys_real: {
-            'Expert': 'ExpertKeyboard',
-            'Hard': 'HardKeyboard',
-            'Medium': 'MediumKeyboard',
-            'Easy': 'EasyKeyboard'
-        },
-        drums: {
-            'Expert': 'ExpertDrums',
-            'Hard': 'HardDrums',
-            'Medium': 'MediumDrums',
-            'Easy': 'EasyDrums'
-        },
-        drums_5lane: {
-            'Expert': 'ExpertDoubleDrums',
-            'Hard': 'HardDoubleDrums',
-            'Medium': 'MediumDoubleDrums',
-            'Easy': 'EasyDoubleDrums'
-        },
-        dance: {
-            'Expert': 'ExpertDance',
-            'Hard': 'HardDance',
-            'Medium': 'MediumDance',
-            'Easy': 'EasyDance'
+        // 1. [Song]
+        lines.push('[Song]');
+        lines.push('{');
+        lines.push(`  Name = "${(meta.name || 'Song Title').replace(/"/g, "'")}"`);
+        lines.push(`  Artist = "${(meta.artist || 'Artist').replace(/"/g, "'")}"`);
+        lines.push(`  Album = "${(meta.album || 'Album').replace(/"/g, "'")}"`);
+        lines.push(`  Year = ", ${meta.year || '2026'}"`);
+        lines.push(`  Charter = "${(meta.charter || 'Chart-Lab').replace(/"/g, "'")}"`);
+        lines.push(`  Offset = 0`);
+        lines.push(`  Resolution = ${res}`);
+        lines.push(`  Player2 = bass`);
+        lines.push(`  Difficulty = ${meta.diffGuitar >= 0 ? meta.diffGuitar : 3}`);
+        lines.push(`  PreviewStart = ${(parseInt(meta.previewStart || 15000, 10) / 1000).toFixed(2)}`);
+        lines.push(`  PreviewEnd = ${((parseInt(meta.previewStart || 15000, 10) + 30000) / 1000).toFixed(2)}`);
+        lines.push(`  Genre = "${(meta.genre || 'Rock').replace(/"/g, "'")}"`);
+        lines.push(`  MediaType = "cd"`);
+        lines.push(`  MusicStream = "song.ogg"`);
+        lines.push('}');
+
+        // 2. [SyncTrack]
+        lines.push('[SyncTrack]');
+        lines.push('{');
+        if (parsedMidi && parsedMidi.timeSignatures && parsedMidi.timeSignatures.length > 0) {
+            parsedMidi.timeSignatures.forEach(ts => {
+                const denomExp = Math.round(Math.log2(ts.denominator || 4));
+                lines.push(`  ${ts.tick} = TS ${ts.numerator} ${denomExp}`);
+            });
+        } else {
+            lines.push('  0 = TS 4');
         }
-    };
 
-    /**
-     * Generates a fully formatted .chart file
-     */
-    function generateChartFile(midiData, allCharts, lyricEvents, metadata = {}) {
-        const resolution = midiData.ppq || 480;
-        const name = metadata.name || 'Untitled Song';
-        const artist = metadata.artist || 'Unknown Artist';
-        const charter = metadata.charter || 'Chart-Lab';
-        const offset = metadata.offset || 0;
+        if (parsedMidi && parsedMidi.tempos && parsedMidi.tempos.length > 0) {
+            parsedMidi.tempos.forEach(t => {
+                const milliBpm = Math.round(t.bpm * 1000);
+                lines.push(`  ${t.tick} = B ${milliBpm}`);
+            });
+        } else {
+            lines.push('  0 = B 120000');
+        }
+        lines.push('}');
 
-        let chart = '';
-
-        // [Song] Header
-        chart += '[Song]\n{\n';
-        chart += `  Name = "${name}"\n`;
-        chart += `  Artist = "${artist}"\n`;
-        chart += `  Charter = "${charter}"\n`;
-        chart += `  Offset = ${offset}\n`;
-        chart += `  Resolution = ${resolution}\n`;
-        chart += `  Player2 = bass\n`;
-        chart += `  Difficulty = 0\n`;
-        chart += `  PreviewStart = ${metadata.previewStartSec || 30}\n`;
-        chart += `  PreviewEnd = ${(metadata.previewStartSec || 30) + 30}\n`;
-        chart += `  Genre = "${metadata.genre || 'rock'}"\n`;
-        chart += `  MediaType = "cd"\n`;
-        chart += `  HopoFreq = ${metadata.hopoFreq || 170}\n`;
-
-        if (metadata.hasGuitarStem) chart += `  GuitarStream = "Guitar.wav"\n`;
-        if (metadata.hasBassStem) chart += `  BassStream = "Bass.wav"\n`;
-        if (metadata.hasDrumsStem) chart += `  DrumStream = "Drums.wav"\n`;
-        if (metadata.hasVocalsStem) chart += `  VocalStream = "Vocals.wav"\n`;
-        if (metadata.hasKeysStem) chart += `  KeysStream = "Keys.wav"\n`;
-        chart += `  MusicStream = "song.ogg"\n`;
-        chart += '}\n';
-
-        // [SyncTrack]
-        chart += '[SyncTrack]\n{\n';
-        const syncEvents = [];
-        if (midiData.timeSignatures) {
-            for (let ts of midiData.timeSignatures) {
-                syncEvents.push({ tick: ts.tick, text: `TS ${ts.num}` });
+        // 3. [Events]
+        lines.push('[Events]');
+        lines.push('{');
+        const allEvents = [];
+        (sections || []).forEach(sec => {
+            allEvents.push({ tick: sec.tick, val: `section ${sec.name}` });
+        });
+        (lyricEvents || []).forEach(le => {
+            if (le.type === 'phrase_start' || le.type === 'phrase_end') {
+                allEvents.push({ tick: le.tick, val: le.type });
+            } else if (le.type === 'lyric') {
+                allEvents.push({ tick: le.tick, val: `lyric ${le.text.replace(/"/g, "'")}` });
             }
-        }
-        if (midiData.tempos) {
-            for (let tm of midiData.tempos) {
-                syncEvents.push({ tick: tm.tick, text: `B ${Math.round(tm.bpm * 1000)}` });
-            }
-        }
-        syncEvents.sort((a, b) => a.tick - b.tick);
-        if (syncEvents.length === 0 || syncEvents[0].tick !== 0) {
-            chart += '  0 = TS 4\n';
-            chart += '  0 = B 120000\n';
-        }
-        for (let ev of syncEvents) {
-            chart += `  ${ev.tick} = ${ev.text}\n`;
-        }
-        chart += '}\n';
+        });
+        allEvents.sort((a, b) => a.tick - b.tick);
+        allEvents.forEach(ev => {
+            lines.push(`  ${ev.tick} = E "${ev.val}"`);
+        });
+        lines.push('}');
 
-        // [Events] - Vocals and Sections
-        chart += '[Events]\n{\n';
-        const events = [...(lyricEvents || [])];
-        if (events.length === 0) {
-            events.push({ tick: 0, eventText: 'section Intro' });
-        }
-        events.sort((a, b) => a.tick - b.tick);
-        for (let ev of events) {
-            chart += `  ${ev.tick} = E "${ev.eventText}"\n`;
-        }
-        chart += '}\n';
+        // 4. Secciones por Instrumento y Dificultad
+        const diffs = ['Expert', 'Hard', 'Medium', 'Easy'];
+        Object.entries(generatedCharts || {}).forEach(([instKey, diffsMap]) => {
+            const instDef = CharterEngine.INSTRUMENTS[instKey];
+            if (!instDef) return;
 
-        // Instrument Sections
-        for (let inst in allCharts) {
-            const instTracks = allCharts[inst];
-            const headerDict = TRACK_HEADER_MAP[inst];
-            if (!headerDict) continue;
+            diffs.forEach(diff => {
+                const trackData = diffsMap[diff];
+                if (!trackData || !trackData.notes || trackData.notes.length === 0) return;
 
-            for (let diff in instTracks) {
-                const headerName = headerDict[diff];
-                const noteList = instTracks[diff];
-                if (!headerName || !noteList || noteList.length === 0) continue;
+                lines.push(`[${diff}${instDef.chartSuffix}]`);
+                lines.push('{');
 
-                chart += `[${headerName}]\n{\n`;
-
-                const lines = [];
-                for (let ev of noteList) {
-                    lines.push(`  ${ev.tick} = N ${ev.fret} ${ev.sustain || 0}`);
-                    if (ev.starPower) {
-                        lines.push(`  ${ev.starPower.tick} = S 2 ${ev.starPower.duration}`);
+                const entries = [];
+                trackData.notes.forEach(n => {
+                    const outFret = n.rawChartFret !== undefined ? n.rawChartFret : n.fret;
+                    entries.push({ tick: n.tick, order: 1, text: `  ${n.tick} = N ${outFret} ${n.sustainTicks || 0}` });
+                    if (n.cymbalFlag) {
+                        entries.push({ tick: n.tick, order: 2, text: `  ${n.tick} = N ${n.cymbalFlag} 0` });
                     }
-                }
-
-                if (noteList._starPowers && noteList._starPowers.length > 0) {
-                    for (let sp of noteList._starPowers) {
-                        lines.push(`  ${sp.tick} = S 2 ${sp.duration}`);
+                    if (n.isTap) {
+                        entries.push({ tick: n.tick, order: 3, text: `  ${n.tick} = N 6 0` });
                     }
-                }
-
-                if (noteList._solos && noteList._solos.length > 0) {
-                    for (let s of noteList._solos) {
-                        lines.push(`  ${s.startTick} = E "solo"`);
-                        lines.push(`  ${s.endTick} = E "solo_end"`);
-                    }
-                }
-
-                lines.sort((a, b) => {
-                    const tickA = parseInt(a.trim().split(' ')[0]);
-                    const tickB = parseInt(b.trim().split(' ')[0]);
-                    return tickA - tickB;
                 });
 
-                chart += lines.join('\n') + '\n}\n';
-            }
-        }
+                (trackData.starPower || []).forEach(sp => {
+                    entries.push({ tick: sp.tick, order: 0, text: `  ${sp.tick} = S 2 ${sp.lengthTicks}` });
+                });
 
-        return chart;
-    }
-
-    /**
-     * Generates official YARG / Clone Hero / Phase Shift song.ini
-     * Supports every instrument, difficulty, tag, credit, and community link.
-     */
-    function generateSongIni(metadata = {}) {
-        const name = metadata.name || 'Untitled Song';
-        const artist = metadata.artist || 'Unknown Artist';
-        const album = metadata.album || 'Unknown Album';
-        const albumTrack = metadata.albumTrack !== undefined ? metadata.albumTrack : 1;
-        const year = metadata.year || '2024';
-        const genre = metadata.genre || 'Rock';
-        const subGenre = metadata.subGenre || 'Alternative';
-        const tags = metadata.tags || '';
-        const location = metadata.location || '';
-        const rating = metadata.rating !== undefined ? metadata.rating : 1;
-        const songLength = metadata.songLengthMs || 180000;
-        const icon = metadata.icon || 'chartlab';
-        const playlist = metadata.playlist || '';
-        const playlistTrack = metadata.playlistTrack !== undefined ? metadata.playlistTrack : 1;
-        const partsVocalsHarm = metadata.partsVocalsHarm !== undefined ? metadata.partsVocalsHarm : 1;
-        const modchart = metadata.modchart || 0;
-        const previewStart = (metadata.previewStartSec !== undefined ? metadata.previewStartSec : 30) * 1000;
-        const loadingPhrase = metadata.loadingPhrase || 'Charted with Chart-Lab Suite';
-        const charter = metadata.charter || 'Chart-Lab';
-
-        // Charters per instrument
-        const charterGuitar = metadata.charterGuitar || charter;
-        const charterProGuitar = metadata.charterProGuitar || charter;
-        const charterRhythm = metadata.charterRhythm || charter;
-        const charterBass = metadata.charterBass || charter;
-        const charterProBass = metadata.charterProBass || charter;
-        const charterDrums = metadata.charterDrums || charter;
-        const charterKeys = metadata.charterKeys || charter;
-        const charterProKeys = metadata.charterProKeys || charter;
-        const charterVocals = metadata.charterVocals || charter;
-        const charterLowerDiff = metadata.charterLowerDiff || charter;
-
-        // Difficulties as pure integers
-        const diffGuitar = parseInt(metadata.diffGuitar) || 3;
-        const diffGuitarGhl = parseInt(metadata.diffGuitarGhl) || 0;
-        const diffGuitarReal = parseInt(metadata.diffGuitarReal) || 0;
-        const diffGuitarReal22 = parseInt(metadata.diffGuitarReal22) || 0;
-        const diffGuitarCoop = parseInt(metadata.diffGuitarCoop) || 0;
-        const diffGuitarCoopGhl = parseInt(metadata.diffGuitarCoopGhl) || 0;
-        const diffRhythm = parseInt(metadata.diffRhythm) || 0;
-        const diffRhythmGhl = parseInt(metadata.diffRhythmGhl) || 0;
-        const diffBass = parseInt(metadata.diffBass) || 2;
-        const diffBassGhl = parseInt(metadata.diffBassGhl) || 0;
-        const diffBassReal = parseInt(metadata.diffBassReal) || 0;
-        const diffBassReal22 = parseInt(metadata.diffBassReal22) || 0;
-        const diffDrums = parseInt(metadata.diffDrums) || 3;
-        const diffDrumsReal = parseInt(metadata.diffDrumsReal) || diffDrums;
-        const diffEliteDrums = parseInt(metadata.diffEliteDrums) || 0;
-        const diffKeys = parseInt(metadata.diffKeys) || 0;
-        const diffKeysReal = parseInt(metadata.diffKeysReal) || 0;
-        const diffVocals = parseInt(metadata.diffVocals) || 3;
-        const diffVocalsHarm = parseInt(metadata.diffVocalsHarm) || 0;
-        const diffDance = parseInt(metadata.diffDance) || 0;
-        const diffBand = parseInt(metadata.diffBand) || Math.round((diffGuitar + diffBass + diffDrums + (diffKeys || diffGuitar)) / 4) || 2;
-
-        // Engine flags
-        const proDrums = metadata.proDrums !== false ? 'True' : 'False';
-        const fiveLaneDrums = metadata.fiveLaneDrums ? 'True' : 'False';
-        const vocalScrollSpeed = metadata.vocalScrollSpeed || 100;
-        const videoStartTime = metadata.videoStartTime || 0;
-        const endEvents = metadata.endEvents || 0;
-
-        // Credits
-        const creditAlbumArtBy = metadata.creditAlbumArtBy || '';
-        const creditComposedBy = metadata.creditComposedBy || '';
-        const creditEngineeredBy = metadata.creditEngineeredBy || '';
-        const creditLicense = metadata.creditLicense || '';
-        const creditMasteredBy = metadata.creditMasteredBy || '';
-        const creditMixedBy = metadata.creditMixedBy || '';
-        const creditPerformedBy = metadata.creditPerformedBy || '';
-        const creditProducedBy = metadata.creditProducedBy || '';
-        const creditPublishedBy = metadata.creditPublishedBy || '';
-        const creditWrittenBy = metadata.creditWrittenBy || '';
-
-        // Social / External Links
-        const linkBandcamp = metadata.linkBandcamp || '';
-        const linkBluesky = metadata.linkBluesky || '';
-        const linkFacebook = metadata.linkFacebook || '';
-        const linkInstagram = metadata.linkInstagram || '';
-        const linkNewgrounds = metadata.linkNewgrounds || '';
-        const linkSoundcloud = metadata.linkSoundcloud || '';
-        const linkSpotify = metadata.linkSpotify || '';
-        const linkTiktok = metadata.linkTiktok || '';
-        const linkTwitter = metadata.linkTwitter || '';
-        const linkYoutube = metadata.linkYoutube || '';
-        const linkOther = metadata.linkOther || '';
-
-        let ini = `[song]
-name = ${name}
-artist = ${artist}
-album = ${album}
-album_track = ${albumTrack}
-year = ${year}
-genre = ${genre}
-sub_genre = ${subGenre}
-tags = ${tags}
-location = ${location}
-rating = ${rating}
-song_length = ${songLength}
-icon = ${icon}
-playlist = ${playlist}
-playlist_track = ${playlistTrack}
-parts_vocals_harm = ${partsVocalsHarm}
-modchart = ${modchart}
-preview_start_time = ${previewStart}
-loading_phrase = ${loadingPhrase}
-charter = ${charter}
-charter_guitar = ${charterGuitar}
-charter_pro_guitar = ${charterProGuitar}
-charter_rhythm = ${charterRhythm}
-charter_bass = ${charterBass}
-charter_pro_bass = ${charterProBass}
-charter_drums = ${charterDrums}
-charter_keys = ${charterKeys}
-charter_pro_keys = ${charterProKeys}
-charter_vocals = ${charterVocals}
-charter_lower_diff = ${charterLowerDiff}
-`;
-
-        if (creditAlbumArtBy) ini += `credit_album_art_by = ${creditAlbumArtBy}\n`;
-        if (creditComposedBy) ini += `credit_composed_by = ${creditComposedBy}\n`;
-        if (creditEngineeredBy) ini += `credit_engineered_by = ${creditEngineeredBy}\n`;
-        if (creditLicense) ini += `credit_license = ${creditLicense}\n`;
-        if (creditMasteredBy) ini += `credit_mastered_by = ${creditMasteredBy}\n`;
-        if (creditMixedBy) ini += `credit_mixed_by = ${creditMixedBy}\n`;
-        if (creditPerformedBy) ini += `credit_performed_by = ${creditPerformedBy}\n`;
-        if (creditProducedBy) ini += `credit_produced_by = ${creditProducedBy}\n`;
-        if (creditPublishedBy) ini += `credit_published_by = ${creditPublishedBy}\n`;
-        if (creditWrittenBy) ini += `credit_written_by = ${creditWrittenBy}\n`;
-
-        if (linkBandcamp) ini += `link_bandcamp = ${linkBandcamp}\n`;
-        if (linkBluesky) ini += `link_bluesky = ${linkBluesky}\n`;
-        if (linkFacebook) ini += `link_facebook = ${linkFacebook}\n`;
-        if (linkInstagram) ini += `link_instagram = ${linkInstagram}\n`;
-        if (linkNewgrounds) ini += `link_newgrounds = ${linkNewgrounds}\n`;
-        if (linkSoundcloud) ini += `link_soundcloud = ${linkSoundcloud}\n`;
-        if (linkSpotify) ini += `link_spotify = ${linkSpotify}\n`;
-        if (linkTiktok) ini += `link_tiktok = ${linkTiktok}\n`;
-        if (linkTwitter) ini += `link_twitter = ${linkTwitter}\n`;
-        if (linkYoutube) ini += `link_youtube = ${linkYoutube}\n`;
-        if (linkOther) ini += `link_other = ${linkOther}\n`;
-
-        ini += `diff_band = ${diffBand}
-diff_guitar = ${diffGuitar}
-diff_guitarghl = ${diffGuitarGhl}
-diff_guitar_real = ${diffGuitarReal}
-diff_guitar_real_22 = ${diffGuitarReal22}
-diff_guitar_coop = ${diffGuitarCoop}
-diff_guitar_coop_ghl = ${diffGuitarCoopGhl}
-diff_rhythm = ${diffRhythm}
-diff_rhythm_ghl = ${diffRhythmGhl}
-diff_bass = ${diffBass}
-diff_bassghl = ${diffBassGhl}
-diff_bass_real = ${diffBassReal}
-diff_bass_real_22 = ${diffBassReal22}
-diff_drums = ${diffDrums}
-diff_drums_real = ${diffDrumsReal}
-diff_elite_drums = ${diffEliteDrums}
-diff_keys = ${diffKeys}
-diff_keys_real = ${diffKeysReal}
-diff_vocals = ${diffVocals}
-diff_vocals_harm = ${diffVocalsHarm}
-diff_dance = ${diffDance}
-pro_drums = ${proDrums}
-five_lane_drums = ${fiveLaneDrums}
-vocal_scroll_speed = ${vocalScrollSpeed}
-video_start_time = ${videoStartTime}
-end_events = ${endEvents}
-${metadata.ghwtDeReady ? 'ghwt_de = true\n' : ''}
-; --- Metadata & Credits ---
-credit_arranged_by = Ey-Liam
-credit_courtesy_of = Ey-Liam
-credit_other = Ey-Liam
-; Concept inspiration: EFHIII & rhythm gaming community
-`;
-        return ini;
-    }
-
-    /**
-     * Generates placeholder album art
-     */
-    function generatePlaceholderAlbumArt(title, artist) {
-        const c = document.createElement('canvas');
-        c.width = 512;
-        c.height = 512;
-        const ctx = c.getContext('2d');
-
-        const grad = ctx.createLinearGradient(0, 0, 512, 512);
-        grad.addColorStop(0, '#0a0e17');
-        grad.addColorStop(0.5, '#131c2e');
-        grad.addColorStop(1, '#080c14');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 512, 512);
-
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(16, 16, 480, 480);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 32px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(title || 'Untitled', 256, 240);
-
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '22px sans-serif';
-        ctx.fillText(artist || 'Unknown Artist', 256, 280);
-
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '14px monospace';
-        ctx.fillText('CHART-LAB SUITE', 256, 460);
-
-        return new Promise(resolve => c.toBlob(resolve, 'image/png'));
-    }
-
-    /**
-     * Packages notes.chart, song.ini, album art and audio into a downloadable ZIP
-     */
-    async function packageZip(chartContent, iniContent, albumArtBlob, stems = {}, metadata = {}) {
-        if (typeof JSZip === 'undefined') {
-            throw new Error('JSZip library is required for packaging.');
-        }
-
-        const name = (metadata.name || 'Untitled').replace(/[\\/:*?"<>|]/g, '');
-        const artist = (metadata.artist || 'Unknown Artist').replace(/[\\/:*?"<>|]/g, '');
-        const charter = (metadata.charter || 'Chart-Lab').replace(/[\\/:*?"<>|]/g, '');
-        const folderName = `${artist} - ${name} [${charter}]`;
-
-        const zip = new JSZip();
-        const folder = zip.folder(folderName);
-
-        folder.file('notes.chart', chartContent);
-        folder.file('song.ini', iniContent);
-
-        if (albumArtBlob) {
-            folder.file('album.png', albumArtBlob);
-        }
-
-        for (let stemName in stems) {
-            const blob = stems[stemName];
-            if (blob) {
-                folder.file(stemName, blob);
-            }
-        }
-
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
+                entries.sort((a, b) => a.tick - b.tick || a.order - b.order);
+                entries.forEach(e => lines.push(e.text));
+                lines.push('}');
+            });
         });
 
-        return zipBlob;
+        return lines.join('\r\n');
     }
 
-    function triggerDownload(blob, filename) {
+    static buildSongIniString(meta, durationMs = 180000) {
+        const lines = ['[song]'];
+        lines.push(`name = ${meta.name || 'Song Title'}`);
+        lines.push(`artist = ${meta.artist || 'Artist'}`);
+        lines.push(`album = ${meta.album || 'Album'}`);
+        lines.push(`genre = ${meta.genre || 'Rock'}`);
+        if (meta.subGenre) lines.push(`sub_genre = ${meta.subGenre}`);
+        lines.push(`year = ${meta.year || '2026'}`);
+        lines.push(`charter = ${meta.charter || 'Chart-Lab'}`);
+        lines.push(`song_length = ${Math.round(durationMs)}`);
+        lines.push(`album_track = ${meta.albumTrack || 1}`);
+        lines.push(`preview_start_time = ${meta.previewStart || 15000}`);
+        lines.push(`delay = ${meta.delayMs || 0}`);
+        lines.push(`icon = ${meta.icon || 'chartlab'}`);
+        if (meta.playlist) lines.push(`playlist = ${meta.playlist}`);
+        if (meta.loadingPhrase) lines.push(`loading_phrase = ${meta.loadingPhrase}`);
+
+        // Dificultades
+        lines.push(`diff_band = ${meta.diffBand}`);
+        lines.push(`diff_guitar = ${meta.diffGuitar}`);
+        lines.push(`diff_bass = ${meta.diffBass}`);
+        lines.push(`diff_rhythm = ${meta.diffRhythm}`);
+        lines.push(`diff_guitar_coop = ${meta.diffGuitarCoop}`);
+        lines.push(`diff_guitarghl = ${meta.diffGuitarGhl}`);
+        lines.push(`diff_bassghl = ${meta.diffBassGhl}`);
+        lines.push(`diff_drums = ${meta.diffDrums}`);
+        lines.push(`diff_drums_real = ${meta.diffDrumsReal}`);
+        lines.push(`diff_keys = ${meta.diffKeys}`);
+        lines.push(`diff_vocals = ${meta.diffVocals}`);
+        lines.push(`diff_vocals_harm = ${meta.diffVocalsHarm}`);
+        lines.push(`diff_dance = ${meta.diffDance}`);
+
+        // Parámetros de motor
+        lines.push(`pro_drums = ${meta.proDrums ? '1' : '0'}`);
+        lines.push(`five_lane_drums = ${meta.fiveLaneDrums ? '1' : '0'}`);
+        if (meta.sustainCutoff) lines.push(`sustain_cutoff_threshold = 0`);
+
+        if (meta.ghwtDeReady) {
+            lines.push(`ghwt_de_compatible = 1`);
+            lines.push(`checksum_verified = 1`);
+        }
+
+        if (meta.creditComposedBy) lines.push(`credit_composed_by = ${meta.creditComposedBy}`);
+        if (meta.creditProducedBy) lines.push(`credit_produced_by = ${meta.creditProducedBy}`);
+        if (meta.linkSpotify) lines.push(`link_spotify = ${meta.linkSpotify}`);
+        if (meta.linkYoutube) lines.push(`link_youtube = ${meta.linkYoutube}`);
+
+        lines.push('; --- Metadata & Credits ---');
+        lines.push('credit_arranged_by = Ey-Liam');
+        lines.push('credit_courtesy_of = Ey-Liam');
+        lines.push('credit_other = Ey-Liam');
+        lines.push('; Concept inspiration: EFHIII & rhythm gaming community');
+
+        return lines.join('\r\n');
+    }
+
+    static async exportZipPackage(chartStr, iniStr, albumCanvas, stemsMap, meta) {
+        if (typeof JSZip === 'undefined') {
+            throw new Error('La libreria JSZip no esta disponible.');
+        }
+
+        const zip = new JSZip();
+        const safeArtist = (meta.artist || 'Artist').replace(/[\\/:*?"<>|]/g, '').trim();
+        const safeName = (meta.name || 'Song').replace(/[\\/:*?"<>|]/g, '').trim();
+        const safeCharter = (meta.charter || 'Chart-Lab').replace(/[\\/:*?"<>|]/g, '').trim();
+        const folderName = `${safeArtist} - ${safeName} [${safeCharter}]`;
+        const folder = zip.folder(folderName);
+
+        folder.file('notes.chart', chartStr);
+        folder.file('song.ini', iniStr);
+
+        if (albumCanvas) {
+            const dataUrl = albumCanvas.toDataURL('image/png');
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+            folder.file('album.png', base64Data, { base64: true });
+        }
+
+        Object.entries(stemsMap || {}).forEach(([slotKey, stemObj]) => {
+            if (stemObj && stemObj.file) {
+                const ext = stemObj.file.name.split('.').pop().toLowerCase() || 'ogg';
+                folder.file(`${slotKey}.${ext}`, stemObj.file);
+            }
+        });
+
+        const blob = await zip.generateAsync({ type: 'blob' });
+        this.triggerDownload(blob, `${folderName}.zip`);
+    }
+
+    static triggerDownload(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 200);
     }
+}
 
-    return {
-        TRACK_HEADER_MAP,
-        generateChartFile,
-        generateChartString: generateChartFile,
-        generateSongIni,
-        generatePlaceholderAlbumArt,
-        packageZip,
-        packageToZip: async (chart, ini, audio, art, meta) => {
-            const blob = await packageZip(chart, ini, art, audio, meta);
-            const name = (meta && meta.name ? meta.name : 'song').replace(/[\\/:*?"<>|]/g, '');
-            const artist = (meta && meta.artist ? meta.artist : 'artist').replace(/[\\/:*?"<>|]/g, '');
-            return { blob, filename: `${artist} - ${name}.zip` };
-        },
-        triggerDownload
-    };
-}));
+window.PackageExporter = PackageExporter;

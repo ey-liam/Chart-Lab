@@ -1,379 +1,245 @@
 /**
- * Chart-Lab - Binary MIDI Parser
- * Supports Format 0 & 1, running status, meta events, tempos, time signatures & lyrics.
- * Dual environment: works in Browser and Node.js.
+ * Chart-Lab - Decodificador Binario de Archivos MIDI (Formatos 0 y 1)
+ * Autor: Ey-Liam
  */
-(function(root, factory) {
-    if (typeof define === 'function' && define.amd) {
-        define([], factory);
-    } else if (typeof module === 'object' && module.exports) {
-        module.exports = factory();
-    } else {
-        root.MidiParser = factory();
-    }
-}(typeof self !== 'undefined' ? self : this, function() {
-    'use strict';
+class MidiParser {
+    static parseArrayBuffer(buffer) {
+        const view = new DataView(buffer);
+        let pos = 0;
 
-    // General MIDI Instrument Names
-    const GM_INSTRUMENTS = [
-        "Acoustic Grand Piano", "Bright Acoustic Piano", "Electric Grand Piano", "Honky-tonk Piano",
-        "Electric Piano 1", "Electric Piano 2", "Harpsichord", "Clavi",
-        "Celesta", "Glockenspiel", "Music Box", "Vibraphone", "Marimba", "Xylophone", "Tubular Bells", "Dulcimer",
-        "Drawbar Organ", "Percussive Organ", "Rock Organ", "Church Organ", "Reed Organ", "Accordion", "Harmonica", "Tango Accordion",
-        "Acoustic Guitar (nylon)", "Acoustic Guitar (steel)", "Electric Guitar (jazz)", "Electric Guitar (clean)",
-        "Electric Guitar (muted)", "Overdriven Guitar", "Distortion Guitar", "Guitar Harmonics",
-        "Acoustic Bass", "Electric Bass (finger)", "Electric Bass (pick)", "Fretless Bass",
-        "Slap Bass 1", "Slap Bass 2", "Synth Bass 1", "Synth Bass 2",
-        "Violin", "Viola", "Cello", "Contrabass", "Tremolo Strings", "Pizzicato Strings", "Orchestral Harp", "Timpani",
-        "String Ensemble 1", "String Ensemble 2", "Synth Strings 1", "Synth Strings 2",
-        "Choir Aahs", "Voice Oohs", "Synth Voice", "Orchestra Hit",
-        "Trumpet", "Trombone", "Tuba", "Muted Trumpet", "French Horn", "Brass Section", "Synth Brass 1", "Synth Brass 2",
-        "Soprano Sax", "Alto Sax", "Tenor Sax", "Baritone Sax", "Oboe", "English Horn", "Bassoon", "Clarinet",
-        "Piccolo", "Flute", "Recorder", "Pan Flute", "Blown Bottle", "Shakuhachi", "Whistle", "Ocarina",
-        "Lead 1 (square)", "Lead 2 (sawtooth)", "Lead 3 (calliope)", "Lead 4 (chiff)", "Lead 5 (charang)", "Lead 6 (voice)", "Lead 7 (fifths)", "Lead 8 (bass + lead)",
-        "Pad 1 (new age)", "Pad 2 (warm)", "Pad 3 (polysynth)", "Pad 4 (choir)", "Pad 5 (bowed)", "Pad 6 (metallic)", "Pad 7 (halo)", "Pad 8 (sweep)",
-        "FX 1 (rain)", "FX 2 (soundtrack)", "FX 3 (crystal)", "FX 4 (atmosphere)", "FX 5 (brightness)", "FX 6 (goblins)", "FX 7 (echoes)", "FX 8 (sci-fi)",
-        "Sitar", "Banjo", "Shamisen", "Koto", "Kalimba", "Bagpipe", "Fiddle", "Shanai",
-        "Tinkle Bell", "Agogo", "Steel Drums", "Woodblock", "Taiko Drum", "Melodic Tom", "Synth Drum", "Reverse Cymbal",
-        "Guitar Fret Noise", "Breath Noise", "Seashore", "Bird Tweet", "Telephone Ring", "Helicopter", "Applause", "Gunshot"
-    ];
-
-    const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-
-    function pitchToName(pitch) {
-        const octave = Math.floor(pitch / 12) - 1;
-        const name = NOTE_NAMES[pitch % 12];
-        return `${name}${octave}`;
-    }
-
-    function parse(bufferOrArrayBuffer) {
-        let uint8;
-        if (bufferOrArrayBuffer instanceof Uint8Array) {
-            uint8 = bufferOrArrayBuffer;
-        } else if (bufferOrArrayBuffer instanceof ArrayBuffer) {
-            uint8 = new Uint8Array(bufferOrArrayBuffer);
-        } else if (typeof Buffer !== 'undefined' && Buffer.isBuffer(bufferOrArrayBuffer)) {
-            uint8 = new Uint8Array(bufferOrArrayBuffer.buffer, bufferOrArrayBuffer.byteOffset, bufferOrArrayBuffer.byteLength);
-        } else {
-            throw new Error('Unsupported buffer type for MIDI parsing');
-        }
-
-        let offset = 0;
-        const view = new DataView(uint8.buffer, uint8.byteOffset, uint8.byteLength);
-
-        function readStr(len) {
-            let str = '';
-            for (let i = 0; i < len; i++) {
-                if (offset < uint8.length) {
-                    str += String.fromCharCode(uint8[offset++]);
-                }
+        const readString = (len) => {
+            let s = '';
+            for (let i = 0; i < len && pos < view.byteLength; i++) {
+                s += String.fromCharCode(view.getUint8(pos++));
             }
-            return str;
+            return s;
+        };
+
+        const readVarLen = () => {
+            let value = 0;
+            while (pos < view.byteLength) {
+                const b = view.getUint8(pos++);
+                value = (value << 7) | (b & 0x7f);
+                if ((b & 0x80) === 0) break;
+            }
+            return value;
+        };
+
+        const magic = readString(4);
+        if (magic !== 'MThd') {
+            throw new Error('Encabezado MIDI invalido: no se encontro MThd.');
         }
 
-        function readU32() {
-            if (offset + 4 > uint8.length) return 0;
-            const val = view.getUint32(offset);
-            offset += 4;
-            return val;
-        }
+        const hdrLen = view.getUint32(pos);
+        pos += 4;
+        const formatType = view.getUint16(pos);
+        const numTracks = view.getUint16(pos + 2);
+        const timeDivision = view.getUint16(pos + 4);
+        pos += hdrLen;
 
-        function readU16() {
-            if (offset + 2 > uint8.length) return 0;
-            const val = view.getUint16(offset);
-            offset += 2;
-            return val;
-        }
-
-        function readU8() {
-            return offset < uint8.length ? uint8[offset++] : 0;
-        }
-
-        function readVarLen() {
-            let val = 0;
-            let b = 0;
-            let count = 0;
-            do {
-                if (offset >= uint8.length) break;
-                b = uint8[offset++];
-                val = (val << 7) | (b & 0x7F);
-                count++;
-            } while ((b & 0x80) && count < 4);
-            return val;
-        }
-
-        // Header Chunk
-        const headerId = readStr(4);
-        if (headerId !== 'MThd') {
-            throw new Error('Invalid MIDI header: expected "MThd", got "' + headerId + '"');
-        }
-
-        const headerLen = readU32();
-        const format = readU16();
-        const numTracks = readU16();
-        const division = readU16();
-
-        // If SMPTE format, standard fallback
-        const ppq = (division & 0x8000) === 0 ? division : 480;
-
-        if (headerLen > 6) {
-            offset += (headerLen - 6);
-        }
-
+        const resolution = (timeDivision & 0x8000) ? 480 : timeDivision;
+        const tempoEvents = [{ tick: 0, usPerQuarter: 500000, bpm: 120 }];
+        const timeSignatures = [{ tick: 0, numerator: 4, denominator: 4 }];
+        const embeddedLyrics = [];
         const rawTracks = [];
-        const globalTempos = [];
-        const globalTimeSignatures = [];
         let maxTick = 0;
 
-        for (let t = 0; t < numTracks; t++) {
-            if (offset >= uint8.length) break;
-            const trackId = readStr(4);
-            if (trackId !== 'MTrk') {
-                // Seek to next MTrk if padding exists
-                let found = false;
-                while (offset <= uint8.length - 4) {
-                    if (uint8[offset] === 0x4D && uint8[offset+1] === 0x54 && uint8[offset+2] === 0x72 && uint8[offset+3] === 0x6B) {
-                        readStr(4);
-                        found = true;
-                        break;
-                    }
-                    offset++;
-                }
-                if (!found) break;
-            }
+        for (let t = 0; t < numTracks && pos < view.byteLength; t++) {
+            const trkMagic = readString(4);
+            if (trkMagic !== 'MTrk') break;
 
-            const trackLen = readU32();
-            const trackEnd = offset + trackLen;
+            const trkLength = view.getUint32(pos);
+            pos += 4;
+            const trkEnd = Math.min(view.byteLength, pos + trkLength);
 
-            let curTick = 0;
+            let tick = 0;
             let runningStatus = 0;
             let trackName = `Pista ${t + 1}`;
-            let instrumentName = '';
-            let programNumber = null;
-            let channelUsed = null;
-            let isPercussion = false;
-
-            const openNotes = {}; // note -> [{ tick, vel, chan }]
+            const activeNotes = new Map();
             const notes = [];
-            const textEvents = [];
+            const channelCounts = new Array(16).fill(0);
 
-            while (offset < trackEnd && offset < uint8.length) {
+            while (pos < trkEnd) {
                 const delta = readVarLen();
-                curTick += delta;
-                if (curTick > maxTick) maxTick = curTick;
+                tick += delta;
+                if (tick > maxTick) maxTick = tick;
 
-                let status = uint8[offset];
-                if (status & 0x80) {
-                    offset++;
-                    runningStatus = status;
-                } else {
+                let status = view.getUint8(pos);
+                if (status < 0x80) {
                     status = runningStatus;
+                } else {
+                    pos++;
+                    if (status < 0xf0) runningStatus = status;
                 }
 
-                const type = status & 0xF0;
-                const chan = status & 0x0F;
+                const eventType = status & 0xf0;
+                const channel = status & 0x0f;
 
-                if (chan !== undefined && channelUsed === null && (type === 0x90 || type === 0x80 || type === 0xC0)) {
-                    channelUsed = chan;
-                    if (chan === 9) isPercussion = true;
-                }
+                if (eventType === 0x90 || eventType === 0x80) {
+                    const pitch = view.getUint8(pos++);
+                    const velocity = view.getUint8(pos++);
+                    const key = `${channel}:${pitch}`;
 
-                if (status === 0xFF) {
-                    // Meta Event
-                    const metaType = readU8();
-                    const metaLen = readVarLen();
-                    const metaStart = offset;
-
-                    if (metaType === 0x03) {
-                        let str = '';
-                        for (let i = 0; i < metaLen; i++) str += String.fromCharCode(uint8[metaStart + i]);
-                        trackName = str.trim() || trackName;
-                    } else if (metaType === 0x04) {
-                        let str = '';
-                        for (let i = 0; i < metaLen; i++) str += String.fromCharCode(uint8[metaStart + i]);
-                        instrumentName = str.trim();
-                    } else if (metaType === 0x51 && metaLen === 3) {
-                        const us = (uint8[metaStart] << 16) | (uint8[metaStart + 1] << 8) | uint8[metaStart + 2];
-                        const bpm = 60000000 / us;
-                        globalTempos.push({ tick: curTick, tempo: us, bpm });
-                    } else if (metaType === 0x58 && metaLen >= 2) {
-                        const num = uint8[metaStart];
-                        const den = Math.pow(2, uint8[metaStart + 1]);
-                        globalTimeSignatures.push({ tick: curTick, num, den });
-                    } else if (metaType === 0x01 || metaType === 0x05) {
-                        let str = '';
-                        for (let i = 0; i < metaLen; i++) str += String.fromCharCode(uint8[metaStart + i]);
-                        textEvents.push({
-                            tick: curTick,
-                            type: metaType === 0x05 ? 'lyric' : 'text',
-                            text: str
+                    if (eventType === 0x90 && velocity > 0) {
+                        activeNotes.set(key, { tick, pitch, velocity, channel });
+                        channelCounts[channel]++;
+                    } else if (activeNotes.has(key)) {
+                        const startObj = activeNotes.get(key);
+                        activeNotes.delete(key);
+                        notes.push({
+                            tick: startObj.tick,
+                            durationTicks: Math.max(1, tick - startObj.tick),
+                            pitch: startObj.pitch,
+                            velocity: startObj.velocity,
+                            channel: startObj.channel
                         });
                     }
-                    offset = metaStart + metaLen;
-                } else if (status === 0xF0 || status === 0xF7) {
-                    // Sysex
-                    const sysLen = readVarLen();
-                    offset += sysLen;
-                } else if (type === 0x90 || type === 0x80) {
-                    const note = readU8();
-                    const vel = readU8();
-                    if (type === 0x90 && vel > 0) {
-                        if (!openNotes[note]) openNotes[note] = [];
-                        openNotes[note].push({ tick: curTick, vel, chan });
-                    } else {
-                        if (openNotes[note] && openNotes[note].length > 0) {
-                            const start = openNotes[note].shift();
-                            notes.push({
-                                midi: note,
-                                name: pitchToName(note),
-                                velocity: start.vel,
-                                tick: start.tick,
-                                durationTicks: Math.max(1, curTick - start.tick),
-                                channel: start.chan
-                            });
+                } else if (eventType === 0xa0 || eventType === 0xb0 || eventType === 0xe0) {
+                    pos += 2;
+                } else if (eventType === 0xc0 || eventType === 0xd0) {
+                    pos += 1;
+                } else if (status === 0xff) {
+                    const metaType = view.getUint8(pos++);
+                    const metaLen = readVarLen();
+                    const metaEnd = pos + metaLen;
+
+                    if (metaType === 0x03) {
+                        const txt = readString(metaLen).trim();
+                        if (txt) trackName = txt;
+                    } else if (metaType === 0x05 || metaType === 0x01) {
+                        const txt = readString(metaLen).trim();
+                        if (txt && !txt.startsWith('[') && !txt.startsWith('@')) {
+                            embeddedLyrics.push({ tick, text: txt });
                         }
+                    } else if (metaType === 0x51 && metaLen === 3) {
+                        const usPerQuarter =
+                            (view.getUint8(pos) << 16) |
+                            (view.getUint8(pos + 1) << 8) |
+                            view.getUint8(pos + 2);
+                        const bpm = Math.round((60000000 / usPerQuarter) * 1000) / 1000;
+                        tempoEvents.push({ tick, usPerQuarter, bpm });
+                    } else if (metaType === 0x58 && metaLen >= 2) {
+                        const num = view.getUint8(pos);
+                        const den = Math.pow(2, view.getUint8(pos + 1));
+                        timeSignatures.push({ tick, numerator: num, denominator: den });
                     }
-                } else if (type === 0xC0) {
-                    // Program Change
-                    programNumber = readU8();
-                    if (!instrumentName && GM_INSTRUMENTS[programNumber]) {
-                        instrumentName = GM_INSTRUMENTS[programNumber];
-                    }
-                } else if (type === 0xD0) {
-                    readU8();
-                } else if (type === 0xA0 || type === 0xB0 || type === 0xE0) {
-                    offset += 2;
+                    pos = metaEnd;
+                } else if (status === 0xf0 || status === 0xf7) {
+                    const sysexLen = readVarLen();
+                    pos += sysexLen;
                 } else {
-                    // Unknown status, advance safely
                     break;
                 }
             }
-            offset = trackEnd;
 
-            // Close any unclosed notes at maxTick
-            for (let noteKey in openNotes) {
-                while (openNotes[noteKey] && openNotes[noteKey].length > 0) {
-                    const start = openNotes[noteKey].shift();
-                    notes.push({
-                        midi: parseInt(noteKey),
-                        name: pitchToName(parseInt(noteKey)),
-                        velocity: start.vel,
-                        tick: start.tick,
-                        durationTicks: Math.max(1, (maxTick || start.tick + ppq) - start.tick),
-                        channel: start.chan
-                    });
-                }
+            pos = trkEnd;
+
+            if (notes.length > 0) {
+                notes.sort((a, b) => a.tick - b.tick || a.pitch - b.pitch);
+                let minPitch = 127, maxPitch = 0;
+                notes.forEach(n => {
+                    if (n.pitch < minPitch) minPitch = n.pitch;
+                    if (n.pitch > maxPitch) maxPitch = n.pitch;
+                });
+                const dominantChannel = channelCounts.indexOf(Math.max(...channelCounts));
+
+                rawTracks.push({
+                    id: rawTracks.length,
+                    name: trackName,
+                    channel: dominantChannel,
+                    isPercussion: dominantChannel === 9,
+                    notes,
+                    minPitch,
+                    maxPitch
+                });
             }
+        }
 
-            notes.sort((a, b) => a.tick - b.tick || a.midi - b.midi);
-
-            const pitches = notes.map(n => n.midi);
-            const minPitch = pitches.length > 0 ? Math.min(...pitches) : 0;
-            const maxPitch = pitches.length > 0 ? Math.max(...pitches) : 0;
-
-            rawTracks.push({
-                id: t,
-                name: trackName,
-                instrumentName: instrumentName || (isPercussion ? 'Standard Drum Kit' : 'General Instrument'),
-                programNumber: programNumber !== null ? programNumber : (isPercussion ? 0 : 0),
-                channel: channelUsed !== null ? channelUsed : 0,
-                isPercussion: isPercussion || (channelUsed === 9),
-                notes,
-                textEvents,
-                minPitch,
-                maxPitch,
-                noteCount: notes.length
+        // Si es Formato 0 (una sola pista con varios canales), separar por canal
+        let finalTracks = rawTracks;
+        if (rawTracks.length === 1 && formatType === 0) {
+            const byChan = new Map();
+            rawTracks[0].notes.forEach(n => {
+                if (!byChan.has(n.channel)) byChan.set(n.channel, []);
+                byChan.get(n.channel).push(n);
             });
+            if (byChan.size > 1) {
+                finalTracks = [];
+                byChan.forEach((chNotes, ch) => {
+                    let minP = 127, maxP = 0;
+                    chNotes.forEach(n => {
+                        if (n.pitch < minP) minP = n.pitch;
+                        if (n.pitch > maxP) maxP = n.pitch;
+                    });
+                    finalTracks.push({
+                        id: finalTracks.length,
+                        name: ch === 9 ? 'Percusion Canal 10' : `Canal MIDI ${ch + 1}`,
+                        channel: ch,
+                        isPercussion: ch === 9,
+                        notes: chNotes,
+                        minPitch: minP,
+                        maxPitch: maxP
+                    });
+                });
+            }
         }
 
-        // Process Tempos & Build Timing Map
-        if (globalTempos.length === 0) {
-            globalTempos.push({ tick: 0, tempo: 500000, bpm: 120 });
-        }
-        globalTempos.sort((a, b) => a.tick - b.tick);
-
-        // Deduplicate duplicate ticks (keep last tempo)
-        const dedupedTempos = [];
-        for (let tm of globalTempos) {
-            if (dedupedTempos.length > 0 && dedupedTempos[dedupedTempos.length - 1].tick === tm.tick) {
-                dedupedTempos[dedupedTempos.length - 1] = tm;
+        // Consolidar mapa de tempos con tiempo acumulado en segundos
+        tempoEvents.sort((a, b) => a.tick - b.tick);
+        const dedupTempos = [];
+        tempoEvents.forEach(te => {
+            if (dedupTempos.length > 0 && dedupTempos[dedupTempos.length - 1].tick === te.tick) {
+                dedupTempos[dedupTempos.length - 1] = te;
             } else {
-                dedupedTempos.push(tm);
+                dedupTempos.push({ ...te, timeSec: 0 });
             }
+        });
+
+        for (let i = 1; i < dedupTempos.length; i++) {
+            const prev = dedupTempos[i - 1];
+            const deltaTicks = dedupTempos[i].tick - prev.tick;
+            dedupTempos[i].timeSec = prev.timeSec + (deltaTicks / resolution) * (prev.usPerQuarter / 1000000);
         }
 
-        // Compute cumulative time in seconds for each tempo event
-        let curSec = 0;
-        let lastTick = 0;
-        let lastUsPerBeat = dedupedTempos[0].tempo;
-
-        for (let i = 0; i < dedupedTempos.length; i++) {
-            const tm = dedupedTempos[i];
-            const deltaTicks = tm.tick - lastTick;
-            curSec += (deltaTicks / ppq) * (lastUsPerBeat / 1000000);
-            tm.timeSec = curSec;
-            lastTick = tm.tick;
-            lastUsPerBeat = tm.tempo;
-        }
-
-        // Process Time Signatures
-        if (globalTimeSignatures.length === 0) {
-            globalTimeSignatures.push({ tick: 0, num: 4, den: 4 });
-        }
-        globalTimeSignatures.sort((a, b) => a.tick - b.tick);
-
-        // Timing conversion functions
-        function tickToSeconds(tick) {
-            if (tick <= 0) return 0;
-            let prev = dedupedTempos[0];
-            for (let i = 1; i < dedupedTempos.length; i++) {
-                if (dedupedTempos[i].tick > tick) break;
-                prev = dedupedTempos[i];
+        const tickToSeconds = (targetTick) => {
+            let active = dedupTempos[0];
+            for (let i = 1; i < dedupTempos.length; i++) {
+                if (dedupTempos[i].tick <= targetTick) active = dedupTempos[i];
+                else break;
             }
-            const deltaTicks = tick - prev.tick;
-            return prev.timeSec + (deltaTicks / ppq) * (prev.tempo / 1000000);
-        }
+            const remTicks = Math.max(0, targetTick - active.tick);
+            return active.timeSec + (remTicks / resolution) * (active.usPerQuarter / 1000000);
+        };
 
-        function secondsToTick(sec) {
-            if (sec <= 0) return 0;
-            let prev = dedupedTempos[0];
-            for (let i = 1; i < dedupedTempos.length; i++) {
-                if (dedupedTempos[i].timeSec > sec) break;
-                prev = dedupedTempos[i];
+        const secondsToTick = (targetSec) => {
+            let active = dedupTempos[0];
+            for (let i = 1; i < dedupTempos.length; i++) {
+                if (dedupTempos[i].timeSec <= targetSec) active = dedupTempos[i];
+                else break;
             }
-            const deltaSec = sec - prev.timeSec;
-            const deltaTicks = (deltaSec * 1000000 / prev.tempo) * ppq;
-            return Math.round(prev.tick + deltaTicks);
-        }
-
-        // Annotate all notes with real-time seconds
-        for (let trk of rawTracks) {
-            for (let n of trk.notes) {
-                n.startTime = tickToSeconds(n.tick);
-                n.endTime = tickToSeconds(n.tick + n.durationTicks);
-                n.durationSec = n.endTime - n.startTime;
-            }
-        }
-
-        const totalDurationSec = tickToSeconds(maxTick);
+            const remSec = Math.max(0, targetSec - active.timeSec);
+            const beats = remSec / (active.usPerQuarter / 1000000);
+            return Math.round(active.tick + beats * resolution);
+        };
 
         return {
-            ppq,
-            format,
-            tracks: rawTracks,
-            tempos: dedupedTempos,
-            timeSignatures: globalTimeSignatures,
+            formatType,
+            resolution,
             maxTick,
-            totalDurationSec,
+            tempos: dedupTempos,
+            timeSignatures,
+            embeddedLyrics,
+            tracks: finalTracks,
             tickToSeconds,
             secondsToTick
         };
     }
 
-    return {
-        parse,
-        GM_INSTRUMENTS,
-        NOTE_NAMES,
-        pitchToName
-    };
-}));
+    static pitchToNoteName(pitch) {
+        const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const oct = Math.floor(pitch / 12) - 1;
+        return `${names[pitch % 12]}${oct}`;
+    }
+}
+
+window.MidiParser = MidiParser;

@@ -1,514 +1,294 @@
 /**
- * Chart-Lab - 3D Perspective Rhythm Highway Visualizer
- * Renders Clone Hero / Guitar Hero / GHL / Dance style highway with perspective notes, sustains,
- * beat lines, hit effects, and real-time karaoke lyrics banner.
+ * Chart-Lab - HiDPI 3D Highway, Waveform Beat-Sync & Vocal Ribbon Renderer
+ * Corrige el estiramiento de canvas mediante ResizeObserver y devicePixelRatio.
  */
-(function(root, factory) {
-    if (typeof define === 'function' && define.amd) {
-        define([], factory);
-    } else if (typeof module === 'object' && module.exports) {
-        module.exports = factory();
-    } else {
-        root.HighwayVisualizer = factory();
+class HighwayVisualizer {
+    constructor(highwayCanvasId, waveformCanvasId, vocalCanvasId) {
+        this.hwCanvas = document.getElementById(highwayCanvasId);
+        this.wfCanvas = document.getElementById(waveformCanvasId);
+        this.vcCanvas = document.getElementById(vocalCanvasId);
+
+        this.FRET_COLORS_5 = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#f97316'];
+        this.FRET_COLORS_6 = ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#475569', '#475569', '#475569'];
+
+        this.setupHiDPICanvas(this.hwCanvas);
+        this.setupHiDPICanvas(this.wfCanvas);
+        this.setupHiDPICanvas(this.vcCanvas);
     }
-}(typeof self !== 'undefined' ? self : this, function() {
-    'use strict';
 
-    const FRET_COLORS = {
-        0: { fill: '#00e676', border: '#b9f6ca', glow: 'rgba(0, 230, 118, 0.6)' }, // Green
-        1: { fill: '#ff1744', border: '#ff8a80', glow: 'rgba(255, 23, 68, 0.6)' },  // Red
-        2: { fill: '#ffea00', border: '#ffff8d', glow: 'rgba(255, 234, 0, 0.6)' },  // Yellow
-        3: { fill: '#2979ff', border: '#82b1ff', glow: 'rgba(41, 121, 255, 0.6)' }, // Blue
-        4: { fill: '#ff9100', border: '#ffd180', glow: 'rgba(255, 145, 0, 0.6)' },  // Orange
-        7: { fill: '#d500f9', border: '#ea80fc', glow: 'rgba(213, 0, 249, 0.8)' }   // Open Note Purple
-    };
+    setupHiDPICanvas(canvas) {
+        if (!canvas) return;
+        const updateSize = () => {
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.round(rect.width * dpr);
+            canvas.height = Math.round(rect.height * dpr);
+        };
+        updateSize();
+        const ro = new ResizeObserver(updateSize);
+        ro.observe(canvas);
+        window.addEventListener('resize', updateSize);
+    }
 
-    const DRUM_COLORS = {
-        0: { fill: '#ff6d00', border: '#ffe0b2', glow: 'rgba(255, 109, 0, 0.7)' }, // Kick
-        1: { fill: '#ff1744', border: '#ff8a80', glow: 'rgba(255, 23, 68, 0.6)' }, // Red Snare
-        2: { fill: '#ffea00', border: '#ffff8d', glow: 'rgba(255, 234, 0, 0.6)' }, // Yellow Tom/Hihat
-        3: { fill: '#2979ff', border: '#82b1ff', glow: 'rgba(41, 121, 255, 0.6)' }, // Blue Tom/Ride
-        4: { fill: '#00e676', border: '#b9f6ca', glow: 'rgba(0, 230, 118, 0.6)' }, // Green Tom/Crash
-        5: { fill: '#a855f7', border: '#e9d5ff', glow: 'rgba(168, 85, 247, 0.6)' }  // 5th Pad
-    };
+    renderHighway(notes, lyrics, currentTimeSec, windowSec = 1.8, laneCount = 5, isGhl = false) {
+        if (!this.hwCanvas) return;
+        const ctx = this.hwCanvas.getContext('2d');
+        const W = this.hwCanvas.width;
+        const H = this.hwCanvas.height;
+        if (W === 0 || H === 0) return;
 
-    const GHL_COLORS = {
-        0: { fill: '#d500f9', border: '#ea80fc', glow: 'rgba(213, 0, 249, 0.8)' }, // Open
-        1: { fill: '#f8fafc', border: '#94a3b8', glow: 'rgba(248, 250, 252, 0.8)' }, // White 1
-        2: { fill: '#f8fafc', border: '#94a3b8', glow: 'rgba(248, 250, 252, 0.8)' }, // White 2
-        3: { fill: '#f8fafc', border: '#94a3b8', glow: 'rgba(248, 250, 252, 0.8)' }, // White 3
-        4: { fill: '#0f172a', border: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)' },  // Black 1
-        7: { fill: '#0f172a', border: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)' },  // Black 2
-        8: { fill: '#0f172a', border: '#38bdf8', glow: 'rgba(56, 189, 248, 0.8)' }   // Black 3
-    };
+        ctx.clearRect(0, 0, W, H);
 
-    const DANCE_COLORS = {
-        0: { fill: '#00e676', border: '#b9f6ca', glow: 'rgba(0, 230, 118, 0.6)' }, // Left
-        1: { fill: '#2979ff', border: '#82b1ff', glow: 'rgba(41, 121, 255, 0.6)' }, // Down
-        2: { fill: '#d500f9', border: '#ea80fc', glow: 'rgba(213, 0, 249, 0.6)' }, // Up
-        3: { fill: '#ff1744', border: '#ff8a80', glow: 'rgba(255, 23, 68, 0.6)' }  // Right
-    };
+        // Geometría con proporción fija centrada para evitar estiramiento en pantallas ultra-anchas
+        const maxBoardW = Math.min(W * 0.78, H * 1.15);
+        const topWidth = maxBoardW * 0.34;
+        const bottomWidth = maxBoardW * 0.92;
+        const horizonY = H * 0.14;
+        const strikeY = H * 0.86;
+        const centerX = W * 0.5;
 
-    class HighwayVisualizer {
-        constructor(canvas, audioEngine) {
-            this.canvas = canvas;
-            this.ctx = canvas.getContext('2d');
-            this.audio = audioEngine;
+        // Fondo de la pista 3D
+        const grad = ctx.createLinearGradient(0, horizonY, 0, strikeY);
+        grad.addColorStop(0, '#090e1a');
+        grad.addColorStop(1, '#131d31');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(centerX - topWidth / 2, horizonY);
+        ctx.lineTo(centerX + topWidth / 2, horizonY);
+        ctx.lineTo(centerX + bottomWidth / 2, strikeY);
+        ctx.lineTo(centerX - bottomWidth / 2, strikeY);
+        ctx.closePath();
+        ctx.fill();
 
-            this.currentChart = null;
-            this.currentEvents = null;
-            this.midiData = null;
+        const visualLanes = isGhl ? 3 : laneCount;
 
-            this.selectedInstrument = 'guitar';
-            this.selectedDifficulty = 'Expert';
-
-            this.speedWindowSeconds = 2.2;
-            this.isRunning = false;
-            this.animId = null;
-
-            this.hitParticles = [];
-
-            this.metronomeEnabled = false;
-            this.metronomeCallback = null;
-            this.lastTriggeredBeat = -1;
-
-            this.resize();
-            window.addEventListener('resize', () => this.resize());
-        }
-
-        resize() {
-            const rect = this.canvas.getBoundingClientRect();
-            this.width = rect.width || 800;
-            this.height = rect.height || 500;
-            this.canvas.width = this.width * (window.devicePixelRatio || 1);
-            this.canvas.height = this.height * (window.devicePixelRatio || 1);
-            this.ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
-        }
-
-        setSongData(midiData, chartedData, lyricEvents) {
-            this.midiData = midiData;
-            this.allCharts = chartedData;
-            this.lyricEvents = lyricEvents || [];
-            this.lastTriggeredBeat = -1;
-            this.updateCurrentChart();
-        }
-
-        setMetronome(enabled, callback) {
-            this.metronomeEnabled = !!enabled;
-            this.metronomeCallback = callback || null;
-            this.lastTriggeredBeat = -1;
-        }
-
-        updateCurrentChart() {
-            if (this.allCharts && this.allCharts[this.selectedInstrument]) {
-                this.currentChart = this.allCharts[this.selectedInstrument][this.selectedDifficulty] || [];
-            } else {
-                this.currentChart = [];
-            }
-        }
-
-        setInstrument(inst) {
-            this.selectedInstrument = inst;
-            this.updateCurrentChart();
-        }
-
-        setDifficulty(diff) {
-            this.selectedDifficulty = diff;
-            this.updateCurrentChart();
-        }
-
-        start() {
-            if (this.isRunning) return;
-            this.isRunning = true;
-            const loop = () => {
-                if (this.isRunning) {
-                    this.render();
-                    this.animId = requestAnimationFrame(loop);
-                }
-            };
-            this.animId = requestAnimationFrame(loop);
-        }
-
-        stop() {
-            this.isRunning = false;
-            if (this.animId) cancelAnimationFrame(this.animId);
-        }
-
-        render() {
-            const ctx = this.ctx;
-            const w = this.width;
-            const h = this.height;
-
-            ctx.clearRect(0, 0, w, h);
-
-            const currentTime = this.audio ? this.audio.getCurrentTime() : 0;
-            const isDrumMode = this.selectedInstrument.includes('drum');
-            const isGHLMode = this.selectedInstrument.includes('ghl');
-            const isDanceMode = this.selectedInstrument === 'dance';
-
-            // Metronome audio pulse on downbeat/beat
-            if (this.metronomeEnabled && this.metronomeCallback && this.midiData && this.midiData.tempos && this.midiData.tempos.length > 0 && this.audio && this.audio.isPlaying) {
-                const bpm = this.midiData.tempos[0].bpm || 120;
-                const beatIntervalSec = 60.0 / bpm;
-                const currentBeat = Math.floor(currentTime / beatIntervalSec);
-                if (currentBeat !== this.lastTriggeredBeat && currentBeat >= 0) {
-                    this.lastTriggeredBeat = currentBeat;
-                    const isDownbeat = (currentBeat % 4 === 0);
-                    this.metronomeCallback(isDownbeat);
-                }
-            }
-
-            // 1. Draw Background & Highway Surface
-            this.drawHighway(ctx, w, h, isDrumMode, isGHLMode, isDanceMode);
-
-            // 2. Draw Moving Beat & Measure Lines
-            if (this.midiData) {
-                this.drawBeatLines(ctx, w, h, currentTime);
-            }
-
-            // 3. Draw Strike Target Line & Buttons
-            this.drawStrikeLine(ctx, w, h, isDrumMode, isGHLMode, isDanceMode, currentTime);
-
-            // 4. Draw Sustains and Notes
-            if (this.currentChart && this.currentChart.length > 0 && this.midiData) {
-                this.drawNotesAndSustains(ctx, w, h, currentTime, isDrumMode, isGHLMode, isDanceMode);
-            }
-
-            // 5. Draw Hit Sparkles
-            this.drawParticles(ctx);
-
-            // 6. Draw Karaoke Banner
-            this.drawKaraokeBanner(ctx, w, h, currentTime);
-        }
-
-        getHighwayCoords(fret, progress, isDrumMode = false, isGHLMode = false, isDanceMode = false) {
-            const horizonY = this.height * 0.16;
-            const strikeY = this.height * 0.86;
-
-            // Proportioned 3D highway (prevents ultra-wide horizontal stretching)
-            const bottomWidth = Math.min(this.width * 0.85, 480);
-            const topWidth = bottomWidth * 0.40;
-
-            const y = horizonY + (strikeY - horizonY) * progress;
-            const currentWidth = topWidth + (bottomWidth - topWidth) * progress;
-            const centerX = this.width / 2;
-            const leftX = centerX - currentWidth / 2;
-
-            if (fret === 7 && !isGHLMode) {
-                return { x: centerX, y, width: currentWidth, isFullWidth: true };
-            }
-            if (fret === 0 && isGHLMode) {
-                return { x: centerX, y, width: currentWidth, isFullWidth: true };
-            }
-
-            let laneCount = 5;
-            let col = fret;
-            let yOffset = 0;
-
-            if (isGHLMode) {
-                laneCount = 3;
-                if (fret === 1 || fret === 4) col = 0;
-                else if (fret === 2 || fret === 7) col = 1;
-                else if (fret === 3 || fret === 8) col = 2;
-
-                // Black row slightly higher than white row
-                if (fret === 4 || fret === 7 || fret === 8) yOffset = -8 * progress;
-                else yOffset = 6 * progress;
-            } else if (isDanceMode) {
-                laneCount = 4;
-                col = fret % 4;
-            }
-
-            const laneWidth = currentWidth / laneCount;
-            const x = leftX + laneWidth * (col + 0.5);
-            return { x, y: y + yOffset, width: laneWidth, isFullWidth: false };
-        }
-
-        drawHighway(ctx, w, h, isDrumMode, isGHLMode, isDanceMode) {
-            const horizonY = h * 0.16;
-            const strikeY = h * 0.86;
-            const botW = Math.min(w * 0.85, 480);
-            const topW = botW * 0.40;
-            const centerX = w / 2;
-
-            const grad = ctx.createLinearGradient(centerX, horizonY, centerX, strikeY);
-            grad.addColorStop(0, '#0d1117');
-            grad.addColorStop(0.5, '#161b22');
-            grad.addColorStop(1, '#0a0d14');
-
+        // Líneas divisorias de carriles
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+        ctx.lineWidth = Math.max(1, W * 0.0015);
+        for (let i = 0; i <= visualLanes; i++) {
+            const ratio = i / visualLanes - 0.5;
             ctx.beginPath();
-            ctx.moveTo(centerX - topW / 2, horizonY);
-            ctx.lineTo(centerX + topW / 2, horizonY);
-            ctx.lineTo(centerX + botW / 2, strikeY);
-            ctx.lineTo(centerX - botW / 2, strikeY);
-            ctx.closePath();
-
-            ctx.fillStyle = grad;
-            ctx.fill();
-
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = isDrumMode ? '#ff6d00' : (isGHLMode ? '#f8fafc' : '#2979ff');
-            ctx.shadowColor = ctx.strokeStyle;
-            ctx.shadowBlur = 10;
+            ctx.moveTo(centerX + ratio * topWidth, horizonY);
+            ctx.lineTo(centerX + ratio * bottomWidth, strikeY);
             ctx.stroke();
-            ctx.shadowBlur = 0;
-
-            // Lane dividers
-            const laneCount = isGHLMode ? 3 : (isDanceMode ? 4 : 5);
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            for (let i = 1; i < laneCount; i++) {
-                const topX = (centerX - topW / 2) + (topW / laneCount) * i;
-                const botX = (centerX - botW / 2) + (botW / laneCount) * i;
-                ctx.beginPath();
-                ctx.moveTo(topX, horizonY);
-                ctx.lineTo(botX, strikeY);
-                ctx.stroke();
-            }
         }
 
-        drawBeatLines(ctx, w, h, currentTime) {
-            const minTime = currentTime;
-            const maxTime = currentTime + this.speedWindowSeconds;
+        // Línea de golpeo (Strikeline)
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = Math.max(2, H * 0.006);
+        ctx.beginPath();
+        ctx.moveTo(centerX - bottomWidth / 2, strikeY);
+        ctx.lineTo(centerX + bottomWidth / 2, strikeY);
+        ctx.stroke();
 
-            if (!this.midiData.tempos || this.midiData.tempos.length === 0) return;
-            const bpm = this.midiData.tempos[0].bpm || 120;
-            const beatIntervalSec = 60.0 / bpm;
-
-            const startBeat = Math.floor(minTime / beatIntervalSec);
-            const endBeat = Math.ceil(maxTime / beatIntervalSec);
-
-            ctx.lineWidth = 1;
-            for (let b = startBeat; b <= endBeat; b++) {
-                const beatTime = b * beatIntervalSec;
-                if (beatTime < minTime || beatTime > maxTime) continue;
-
-                const delta = beatTime - currentTime;
-                const progress = 1 - (delta / this.speedWindowSeconds);
-                if (progress < 0 || progress > 1) continue;
-
-                const isMeasure = (b % 4 === 0);
-                ctx.strokeStyle = isMeasure ? 'rgba(255, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.2)';
-                ctx.lineWidth = isMeasure ? 2 : 1;
-
-                const pLeft = this.getHighwayCoords(0, progress);
-                const pRight = this.getHighwayCoords(4, progress);
-
-                ctx.beginPath();
-                ctx.moveTo(pLeft.x - pLeft.width / 2, pLeft.y);
-                ctx.lineTo(pRight.x + pRight.width / 2, pRight.y);
-                ctx.stroke();
-            }
-        }
-
-        drawStrikeLine(ctx, w, h, isDrumMode, isGHLMode, isDanceMode, currentTime) {
-            const strikeY = h * 0.86;
-            const botW = Math.min(w * 0.85, 480);
-            const centerX = w / 2;
-
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        // Receptores en la línea de golpeo
+        for (let i = 0; i < visualLanes; i++) {
+            const laneRatio = (i + 0.5) / visualLanes - 0.5;
+            const rx = centerX + laneRatio * bottomWidth;
+            const rRadius = (bottomWidth / visualLanes) * 0.3;
+            ctx.strokeStyle = isGhl ? '#cbd5e1' : (this.FRET_COLORS_5[i] || '#38bdf8');
+            ctx.lineWidth = Math.max(2, H * 0.005);
             ctx.beginPath();
-            ctx.moveTo(centerX - botW / 2, strikeY);
-            ctx.lineTo(centerX + botW / 2, strikeY);
+            ctx.arc(rx, strikeY, rRadius, 0, Math.PI * 2);
             ctx.stroke();
-
-            const laneCount = isGHLMode ? 3 : (isDanceMode ? 4 : 5);
-            const laneWidth = botW / laneCount;
-            let colors = FRET_COLORS;
-            if (isDrumMode) colors = DRUM_COLORS;
-            else if (isGHLMode) colors = GHL_COLORS;
-            else if (isDanceMode) colors = DANCE_COLORS;
-
-            for (let f = 0; f < laneCount; f++) {
-                const cx = (centerX - botW / 2) + laneWidth * (f + 0.5);
-                const c = colors[f] || colors[0];
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.ellipse(cx, strikeY, laneWidth * 0.38, 10, 0, 0, Math.PI * 2);
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = c.border;
-                ctx.fillStyle = 'rgba(10, 15, 25, 0.7)';
-                ctx.fill();
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.ellipse(cx, strikeY, laneWidth * 0.18, 4, 0, 0, Math.PI * 2);
-                ctx.fillStyle = c.fill;
-                ctx.fill();
-                ctx.restore();
-            }
         }
 
-        drawNotesAndSustains(ctx, w, h, currentTime, isDrumMode, isGHLMode, isDanceMode) {
-            const minTime = currentTime - 0.2;
-            const maxTime = currentTime + this.speedWindowSeconds;
+        // Proyección perspectiva de tiempo a coordenada Y
+        const projectY = (tSec) => {
+            const norm = (tSec - currentTimeSec) / windowSec; // 0 en strikeline, 1 en horizonte
+            const persp = 1 - Math.pow(norm, 0.78);
+            return horizonY + persp * (strikeY - horizonY);
+        };
 
-            const visibleEvents = this.currentChart.filter(ev => {
-                if (ev.isCymbalMarker) return false;
-                const noteTime = this.midiData.tickToSeconds(ev.tick);
-                const sustainSec = ev.sustain ? (this.midiData.tickToSeconds(ev.tick + ev.sustain) - noteTime) : 0;
-                return (noteTime + sustainSec >= minTime) && (noteTime <= maxTime);
-            });
+        const widthAtY = (y) => {
+            const t = (y - horizonY) / (strikeY - horizonY);
+            return topWidth + t * (bottomWidth - topWidth);
+        };
 
-            let colors = FRET_COLORS;
-            if (isDrumMode) colors = DRUM_COLORS;
-            else if (isGHLMode) colors = GHL_COLORS;
-            else if (isDanceMode) colors = DANCE_COLORS;
+        // Dibujar Notas y Sustains
+        if (Array.isArray(notes)) {
+            for (let i = 0; i < notes.length; i++) {
+                const n = notes[i];
+                const noteEndSec = n.timeSec + (n.sustainSec || 0);
+                if (noteEndSec < currentTimeSec - 0.05) continue;
+                if (n.timeSec > currentTimeSec + windowSec) break;
 
-            // Sustains
-            for (let ev of visibleEvents) {
-                if (ev.sustain && ev.sustain > 0) {
-                    const startSec = this.midiData.tickToSeconds(ev.tick);
-                    const endSec = this.midiData.tickToSeconds(ev.tick + ev.sustain);
+                const clampedHeadTime = Math.max(currentTimeSec, n.timeSec);
+                const headY = projectY(clampedHeadTime);
+                const boardWAtHead = widthAtY(headY);
 
-                    const startProgress = Math.max(0, Math.min(1, 1 - (startSec - currentTime) / this.speedWindowSeconds));
-                    const endProgress = Math.max(0, Math.min(1, 1 - (endSec - currentTime) / this.speedWindowSeconds));
-
-                    const pStart = this.getHighwayCoords(ev.fret, startProgress, isDrumMode, isGHLMode, isDanceMode);
-                    const pEnd = this.getHighwayCoords(ev.fret, endProgress, isDrumMode, isGHLMode, isDanceMode);
-
-                    const c = colors[ev.fret] || colors[0];
-                    ctx.save();
-                    ctx.lineWidth = Math.max(4, pStart.width * 0.18);
-                    ctx.strokeStyle = c.glow;
-                    ctx.shadowColor = c.fill;
-                    ctx.shadowBlur = 6;
-                    ctx.beginPath();
-                    ctx.moveTo(pStart.x, pStart.y);
-                    ctx.lineTo(pEnd.x, pEnd.y);
-                    ctx.stroke();
-                    ctx.restore();
-                }
-            }
-
-            // Notes / Gems
-            for (let ev of visibleEvents) {
-                const noteTime = this.midiData.tickToSeconds(ev.tick);
-                const delta = noteTime - currentTime;
-                const progress = 1 - (delta / this.speedWindowSeconds);
-
-                if (progress < 0 || progress > 1.05) continue;
-
-                if (Math.abs(delta) < 0.04 && !ev._hitTriggered && this.audio && this.audio.isPlaying) {
-                    ev._hitTriggered = true;
-                    this.triggerHit(ev.fret, isDrumMode, isGHLMode, isDanceMode);
-                } else if (delta > 0.05) {
-                    ev._hitTriggered = false;
-                }
-
-                const coord = this.getHighwayCoords(ev.fret, progress, isDrumMode, isGHLMode, isDanceMode);
-                const c = colors[ev.fret] || colors[0];
-
-                ctx.save();
-                if (coord.isFullWidth) {
-                    ctx.fillStyle = c.fill;
-                    ctx.shadowColor = c.glow;
-                    ctx.shadowBlur = 12;
-                    ctx.fillRect(coord.x - coord.width / 2 + 10, coord.y - 6, coord.width - 20, 12);
-                } else if (isDrumMode && ev.fret === 0) {
-                    const kickW = coord.width * 5;
-                    ctx.fillStyle = c.fill;
-                    ctx.shadowColor = c.glow;
-                    ctx.shadowBlur = 10;
-                    ctx.fillRect(this.width / 2 - kickW / 2 + 8, coord.y - 5, kickW - 16, 10);
-                } else {
-                    const radiusX = Math.max(8, coord.width * 0.36);
-                    const radiusY = Math.max(5, 7 + 4 * progress);
-
-                    ctx.shadowColor = c.glow;
-                    ctx.shadowBlur = 8;
-                    ctx.beginPath();
-                    ctx.ellipse(coord.x, coord.y, radiusX, radiusY, 0, 0, Math.PI * 2);
-                    ctx.fillStyle = c.fill;
-                    ctx.fill();
-
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = c.border;
-                    ctx.stroke();
-
-                    // Highlight
-                    ctx.beginPath();
-                    ctx.ellipse(coord.x, coord.y - radiusY * 0.2, radiusX * 0.5, radiusY * 0.35, 0, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-                    ctx.fill();
-                }
-                ctx.restore();
-            }
-        }
-
-        triggerHit(fret, isDrumMode, isGHLMode, isDanceMode) {
-            const coord = this.getHighwayCoords(fret, 1.0, isDrumMode, isGHLMode, isDanceMode);
-            let colors = FRET_COLORS;
-            if (isDrumMode) colors = DRUM_COLORS;
-            else if (isGHLMode) colors = GHL_COLORS;
-            else if (isDanceMode) colors = DANCE_COLORS;
-            const c = colors[fret] || colors[0];
-
-            for (let i = 0; i < 8; i++) {
-                this.hitParticles.push({
-                    x: coord.x,
-                    y: coord.y,
-                    vx: (Math.random() - 0.5) * 6,
-                    vy: (Math.random() - 0.5) * 6 - 2,
-                    color: c.fill,
-                    alpha: 1.0,
-                    size: Math.random() * 4 + 2
-                });
-            }
-        }
-
-        drawParticles(ctx) {
-            for (let i = this.hitParticles.length - 1; i >= 0; i--) {
-                const p = this.hitParticles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.alpha -= 0.05;
-
-                if (p.alpha <= 0) {
-                    this.hitParticles.splice(i, 1);
+                // Nota abierta (barra morada completa)
+                if (n.fret === 7) {
+                    ctx.fillStyle = '#c084fc';
+                    const barH = Math.max(6, H * 0.018 * ((headY - horizonY) / (strikeY - horizonY)));
+                    ctx.fillRect(centerX - boardWAtHead * 0.46, headY - barH / 2, boardWAtHead * 0.92, barH);
                     continue;
                 }
 
-                ctx.save();
-                ctx.globalAlpha = p.alpha;
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
+                const laneIdx = isGhl ? (n.fret % 3) : Math.min(visualLanes - 1, n.fret);
+                const laneRatio = (laneIdx + 0.5) / visualLanes - 0.5;
+                const xHead = centerX + laneRatio * boardWAtHead;
+                const color = isGhl ? this.FRET_COLORS_6[n.fret % 6] : (this.FRET_COLORS_5[laneIdx] || '#38bdf8');
+
+                // Cola de Sustain
+                if (n.sustainSec > 0.04) {
+                    const tailTime = Math.min(currentTimeSec + windowSec, noteEndSec);
+                    const tailY = projectY(tailTime);
+                    const boardWAtTail = widthAtY(tailY);
+                    const xTail = centerX + laneRatio * boardWAtTail;
+                    const tailW = Math.max(4, (boardWAtHead / visualLanes) * 0.22);
+
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = tailW;
+                    ctx.beginPath();
+                    ctx.moveTo(xHead, headY);
+                    ctx.lineTo(xTail, tailY);
+                    ctx.stroke();
+                }
+
+                // Gema de Nota (Solo si aún no cruzó la línea de golpeo)
+                if (n.timeSec >= currentTimeSec - 0.03) {
+                    const scale = 0.35 + 0.65 * ((headY - horizonY) / (strikeY - horizonY));
+                    const rx = (boardWAtHead / visualLanes) * 0.32;
+                    const ry = rx * 0.55;
+
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.ellipse(xHead, headY, rx, ry, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Centro blanco para HOPO o borde cian para Tap
+                    ctx.fillStyle = n.isTap ? '#38bdf8' : (n.isHopo ? '#ffffff' : '#0f172a');
+                    ctx.beginPath();
+                    ctx.ellipse(xHead, headY, rx * 0.48, ry * 0.48, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
 
-        drawKaraokeBanner(ctx, w, h, currentTime) {
-            if (!this.lyricEvents || this.lyricEvents.length === 0 || !this.midiData) return;
+        // Overlay de Karaoke / Letras en la parte superior del visor 3D
+        if (Array.isArray(lyrics) && lyrics.length > 0) {
+            ctx.fillStyle = 'rgba(9, 13, 20, 0.82)';
+            ctx.fillRect(0, 0, W, horizonY * 0.85);
 
-            const currentLyrics = [];
-            for (let ev of this.lyricEvents) {
-                const evTime = this.midiData.tickToSeconds(ev.tick);
-                if (Math.abs(evTime - currentTime) < 2.0 && ev.eventText && ev.eventText.startsWith('lyric ')) {
-                    currentLyrics.push(ev.eventText.replace('lyric ', ''));
-                }
-            }
-
-            if (currentLyrics.length > 0) {
-                const text = currentLyrics.join('');
-                ctx.save();
-                ctx.fillStyle = 'rgba(10, 15, 25, 0.75)';
-                ctx.fillRect(w * 0.15, 15, w * 0.7, 36);
-                ctx.strokeStyle = '#38bdf8';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(w * 0.15, 15, w * 0.7, 36);
-
-                ctx.font = 'bold 16px sans-serif';
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center';
-                ctx.fillText(text, w / 2, 38);
-                ctx.restore();
-            }
+            const activeWindow = lyrics.filter(l => l.type === 'lyric' && l.timeSec >= currentTimeSec - 1.5 && l.timeSec <= currentTimeSec + 4.0);
+            ctx.font = `600 ${Math.round(H * 0.038)}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            const lineText = activeWindow.map(l => l.timeSec <= currentTimeSec ? `[${l.text}]` : l.text).join(' ');
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillText(lineText || '...', centerX, horizonY * 0.55);
         }
     }
 
-    return HighwayVisualizer;
-}));
+    renderWaveformSync(peaks, durationSec, beatTimesSec, currentTimeSec, offsetMs, zoomSec = 8) {
+        if (!this.wfCanvas) return;
+        const ctx = this.wfCanvas.getContext('2d');
+        const W = this.wfCanvas.width;
+        const H = this.wfCanvas.height;
+        if (W === 0 || H === 0) return;
+
+        ctx.clearRect(0, 0, W, H);
+        const halfWin = zoomSec / 2;
+        const startSec = currentTimeSec - halfWin;
+        const endSec = currentTimeSec + halfWin;
+        const offsetSec = (offsetMs || 0) / 1000;
+
+        // 1. Dibujar Forma de Onda del Audio
+        if (peaks && peaks.length > 0 && durationSec > 0) {
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.45)';
+            const stepPx = 2;
+            for (let x = 0; x < W; x += stepPx) {
+                const t = startSec + (x / W) * zoomSec;
+                if (t < 0 || t > durationSec) continue;
+                const idx = Math.floor((t / durationSec) * peaks.length);
+                const amp = peaks[idx] || 0;
+                const barH = Math.max(2, amp * (H * 0.85));
+                ctx.fillRect(x, (H - barH) / 2, stepPx - 0.5, barH);
+            }
+        } else {
+            ctx.fillStyle = '#64748b';
+            ctx.font = `${Math.round(H * 0.11)}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('Sube un archivo de audio (song.ogg / .mp3 / .wav) para visualizar su espectro junto a los pulsos MIDI', W / 2, H / 2);
+        }
+
+        // 2. Dibujar Rejilla de Pulsos MIDI desplazados por Offset
+        if (Array.isArray(beatTimesSec)) {
+            for (let i = 0; i < beatTimesSec.length; i++) {
+                const beatT = beatTimesSec[i] + offsetSec;
+                if (beatT < startSec) continue;
+                if (beatT > endSec) break;
+
+                const x = ((beatT - startSec) / zoomSec) * W;
+                const isMeasure = (i % 4 === 0);
+                ctx.strokeStyle = isMeasure ? '#f59e0b' : 'rgba(148, 163, 184, 0.35)';
+                ctx.lineWidth = isMeasure ? 2 : 1;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, H);
+                ctx.stroke();
+            }
+        }
+
+        // 3. Cabezal de Reproducción Central
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(W / 2, 0);
+        ctx.lineTo(W / 2, H);
+        ctx.stroke();
+    }
+
+    renderVocalRibbon(vocalNotes, lyricEvents, scrollNorm = 0, totalDurationSec = 60) {
+        if (!this.vcCanvas) return;
+        const ctx = this.vcCanvas.getContext('2d');
+        const W = this.vcCanvas.width;
+        const H = this.vcCanvas.height;
+        if (W === 0 || H === 0) return;
+
+        ctx.clearRect(0, 0, W, H);
+        const winSec = 10;
+        const startSec = scrollNorm * Math.max(1, totalDurationSec - winSec);
+        const endSec = startSec + winSec;
+
+        if (!vocalNotes || vocalNotes.length === 0) {
+            ctx.fillStyle = '#64748b';
+            ctx.font = `${Math.round(H * 0.13)}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('Selecciona una pista vocal y sincroniza la letra para ver los tubos de tono y sílabas', W / 2, H / 2);
+            return;
+        }
+
+        let minP = 48, maxP = 84;
+        vocalNotes.forEach(n => {
+            if (n.pitch < minP) minP = n.pitch;
+            if (n.pitch > maxP) maxP = n.pitch;
+        });
+        const range = Math.max(12, maxP - minP + 4);
+
+        // Dibujar tubos de nota vocal y su sílaba correspondiente
+        ctx.font = `600 ${Math.round(H * 0.13)}px system-ui, sans-serif`;
+        ctx.textAlign = 'left';
+
+        vocalNotes.forEach((n, idx) => {
+            const nEnd = n.timeSec + n.durationSec;
+            if (nEnd < startSec || n.timeSec > endSec) return;
+
+            const x = ((n.timeSec - startSec) / winSec) * W;
+            const w = Math.max(8, (n.durationSec / winSec) * W);
+            const y = H * 0.75 - ((n.pitch - minP) / range) * (H * 0.58);
+
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(x, y - 5, w, 10);
+
+            const lyr = lyricEvents && lyricEvents[idx] ? lyricEvents[idx].text : '';
+            if (lyr) {
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillText(lyr, x + 2, y + 20);
+            }
+        });
+    }
+}
+
+window.HighwayVisualizer = HighwayVisualizer;

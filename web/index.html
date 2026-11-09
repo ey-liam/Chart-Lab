@@ -3,84 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chart-Lab | Multi-Instrument Rhythm Game Charter & Validator</title>
+    <title>Chart-Lab | Suite de Creación y Validación de Charts</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- Header -->
+    <!-- Encabezado sin duplicación de título -->
     <header class="app-header">
         <div class="logo-container">
-            <div class="logo-icon">🎸</div>
-            <div>
-                <div class="logo-title">Chart-Lab</div>
-                <div class="logo-subtitle">Suite de edición y validación para Clone Hero, YARG y GHWT:DE</div>
-            </div>
+            <div class="logo-badge">CHART-LAB</div>
+            <div class="logo-subtitle">Entorno de creación, sincronización y validación multi-instrumento</div>
         </div>
         <div class="header-badges">
-            <span class="badge badge-notes" id="midiFileName">Sin archivo MIDI</span>
-            <span class="badge badge-success" id="lyricsStatusBadge">Letras: En espera</span>
-            <span class="badge badge-warning" id="auditBadge">Audit: 0 advertencias</span>
+            <span class="badge badge-notes" id="midiFileName">MIDI: No cargado</span>
+            <span class="badge badge-notes" id="tempoSummaryBadge">BPM: --</span>
+            <span class="badge badge-success" id="lyricsStatusBadge">Letras: Sin asignar</span>
+            <span class="badge badge-warning" id="auditBadge">Auditoría: 0 avisos</span>
         </div>
     </header>
 
-    <!-- Navigation Tabs -->
+    <!-- Navegación Principal -->
     <nav class="app-nav">
-        <button class="nav-tab active" data-tab="tab-tracks">
-            Pistas e Instrumentos
-        </button>
-        <button class="nav-tab" data-tab="tab-lyrics">
-            Letras y Secciones
-        </button>
-        <button class="nav-tab" data-tab="tab-audio">
-            Audio y Sincronización
-        </button>
-        <button class="nav-tab" data-tab="tab-highway">
-            Visualizador 3D
-        </button>
-        <button class="nav-tab" data-tab="tab-export">
-            Metadatos y Exportación
-        </button>
-        <button class="nav-tab" data-tab="tab-about">
-            Información
-        </button>
+        <button class="nav-tab active" data-tab="tab-tracks">1. Pistas e Instrumentos</button>
+        <button class="nav-tab" data-tab="tab-lyrics">2. Letras y Secciones</button>
+        <button class="nav-tab" data-tab="tab-audio">3. Audio y Sincronización</button>
+        <button class="nav-tab" data-tab="tab-highway">4. Visualizador y Pruebas</button>
+        <button class="nav-tab" data-tab="tab-export">5. Metadatos y Exportación</button>
+        <button class="nav-tab" data-tab="tab-about">Información</button>
     </nav>
 
-    <!-- Main Container -->
-    <main class="app-content container-fluid">
+    <!-- Contenedor Principal Unificado -->
+    <main class="main-container">
 
-        <!-- TAB 1: PISTAS & INSTRUMENTOS -->
+        <!-- PESTAÑA 1: PISTAS E INSTRUMENTOS -->
         <section id="tab-tracks" class="tab-pane active">
-            <!-- MIDI File Drop Zone -->
             <div class="drop-zone" id="midiDropZone">
                 <input type="file" id="midiFileInput" accept=".mid,.midi,audio/midi">
                 <div class="drop-zone-text">Seleccionar o arrastrar archivo MIDI (.mid / .midi)</div>
-                <div class="drop-zone-sub">Compatible con formatos Type 0 y Type 1 (General MIDI)</div>
+                <div class="drop-zone-sub">Soporta archivos MIDI Tipo 0 y Tipo 1 con múltiples canales, mapa de tempos y eventos de texto</div>
             </div>
 
-            <!-- Track Routing Panel -->
             <div class="card-panel">
                 <div class="card-title">
-                    <span>Enrutamiento de Pistas MIDI</span>
-                    <button class="btn btn-sm btn-outline-info" id="btnAutoAssign">Auto-Asignar</button>
+                    <span>Asignación de Pistas MIDI y Pre-escucha Individual</span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-info" id="btnAutoAssign">Auto-Asignar Pistas</button>
+                        <button class="btn btn-sm btn-outline-light" id="btnStopMidiPreview">Detener Pre-escucha</button>
+                    </div>
                 </div>
+                <p class="helper-text">
+                    Asigna cada pista del archivo MIDI a un instrumento del juego. Usa el botón de escucha en cada fila para oír únicamente esa pista sintetizada e identificar qué instrumento contiene.
+                </p>
 
                 <div class="table-responsive">
                     <table class="table-dark-custom">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Pista / Instrumento</th>
+                                <th>Canal / ID</th>
+                                <th>Nombre en MIDI</th>
                                 <th>Notas</th>
-                                <th>Rango</th>
-                                <th>Asignación</th>
+                                <th>Rango Tonal</th>
+                                <th>Pre-escucha MIDI</th>
+                                <th>Instrumento Destino (.chart)</th>
                             </tr>
                         </thead>
                         <tbody id="trackRoutingBody">
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">
-                                    Cargue un archivo MIDI para visualizar las pistas disponibles.
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Carga un archivo MIDI en el recuadro superior para listar sus pistas.
                                 </td>
                             </tr>
                         </tbody>
@@ -88,217 +79,256 @@
                 </div>
             </div>
 
-            <!-- Chart Tuning Parameters -->
+            <!-- Parámetros Algorítmicos de Conversión -->
             <div class="card-panel">
                 <div class="card-title">
-                    <span>Parámetros de Generación</span>
-                    <button class="btn btn-sm btn-outline-secondary" id="btnReRoll">Re-generar</button>
+                    <span>Parámetros de Generación y Digitación</span>
+                    <button class="btn btn-sm btn-primary-glow" id="btnReRoll">Recalcular Chart</button>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-2 col-6">
-                        <label class="form-label small text-muted">Trastes (Guitarra):</label>
+                        <label class="form-label small text-muted">Trastes Máximos (Expert):</label>
                         <select class="form-select form-select-sm" id="tuningFrets">
                             <option value="5" selected>5 Trastes (Estándar)</option>
-                            <option value="4">4 Trastes (Medium)</option>
-                            <option value="3">3 Trastes (Easy)</option>
+                            <option value="6">6 Trastes (Formato GHL)</option>
+                            <option value="4">4 Trastes (Sin Naranja)</option>
+                            <option value="3">3 Trastes (Básico)</option>
                         </select>
                     </div>
                     <div class="col-md-2 col-6">
-                        <label class="form-label small text-muted">Límite Acordes:</label>
+                        <label class="form-label small text-muted">Polifonía / Acordes:</label>
                         <select class="form-select form-select-sm" id="tuningMaxChords">
-                            <option value="1">1 Nota (Sin acordes)</option>
-                            <option value="2" selected>2 Notas</option>
-                            <option value="3">3 Notas</option>
-                            <option value="4">4 Notas</option>
+                            <option value="1">1 Nota (Solo melodía)</option>
+                            <option value="2" selected>Máx. 2 Notas</option>
+                            <option value="3">Máx. 3 Notas</option>
+                            <option value="4">Máx. 4 Notas</option>
                         </select>
                     </div>
                     <div class="col-md-2 col-6">
-                        <label class="form-label small text-muted">Estilo de Digitación:</label>
+                        <label class="form-label small text-muted">Algoritmo de Mapeo:</label>
                         <select class="form-select form-select-sm" id="tuningStyle">
-                            <option value="balanced" selected>Equilibrado (Estándar)</option>
-                            <option value="melodic">Melódico (Licks / Solos)</option>
-                            <option value="rhythmic">Rítmico (Acordes)</option>
-                            <option value="taps">Taps / HOPO</option>
+                            <option value="balanced" selected>Ventana de Contorno (Estándar)</option>
+                            <option value="melodic">Melódico (Priorizar intervalos)</option>
+                            <option value="rhythmic">Rítmico (Estabilidad en acordes)</option>
+                            <option value="taps">Incluir Taps en ráfagas rápidas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small text-muted">Umbral HOPO (Ticks):</label>
+                        <select class="form-select form-select-sm" id="tuningHopoThreshold">
+                            <option value="48">1/16 Pulso (Estricto)</option>
+                            <option value="65" selected>65/192 (Estándar CH/YARG)</option>
+                            <option value="96">1/8 Pulso (Amplio)</option>
                         </select>
                     </div>
                     <div class="col-md-2 col-6">
                         <label class="form-label small text-muted">Umbral de Sustain:</label>
                         <select class="form-select form-select-sm" id="tuningMinSustain">
                             <option value="0.25">1/16 compás</option>
-                            <option value="0.5" selected>1/8 compás (Estándar)</option>
+                            <option value="0.5" selected>1/8 compás (Recorte 70ms)</option>
                             <option value="1.0">1/4 compás</option>
                         </select>
-                    </div>
-                    <div class="col-md-2 col-6">
-                        <label class="form-label small text-muted">Notas Abiertas:</label>
-                        <div class="form-check form-switch mt-2">
-                            <input class="form-check-input" type="checkbox" id="tuningOpenNotes" checked>
-                            <label class="form-check-label small" for="tuningOpenNotes">Habilitar en Bajo</label>
-                        </div>
                     </div>
                     <div class="col-md-2 col-6">
                         <label class="form-label small text-muted">Frecuencia Star Power:</label>
                         <select class="form-select form-select-sm" id="tuningStarPower">
                             <option value="16" selected>Cada 16 compases</option>
-                            <option value="8">Cada 8 compases (Frecuente)</option>
-                            <option value="24">Cada 24 compases (Exigente)</option>
+                            <option value="8">Cada 8 compases</option>
+                            <option value="24">Cada 24 compases</option>
                             <option value="0">Desactivado</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-6">
-                        <label class="form-label small text-muted">Pedal Bombo (Drums):</label>
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small text-muted">Configuración de Batería:</label>
                         <select class="form-select form-select-sm" id="tuningDrumPedal">
-                            <option value="single" selected>Pedal Simple (1 Pie)</option>
-                            <option value="double">Doble Pedal (Completo)</option>
+                            <option value="pro_single" selected>Pro Drums (Platillos + 1 Pedal)</option>
+                            <option value="pro_double">Pro Drums + Doble Pedal (Expert+)</option>
+                            <option value="four_lane">4 Calles Estándar (Sin platillos)</option>
+                            <option value="five_lane">5 Calles (Formato GHWT)</option>
                         </select>
                     </div>
-                    <div class="col-md-2 col-12">
-                        <label class="form-label small text-muted">Densidad (<span id="densityLabel">100%</span>):</label>
-                        <input type="range" class="form-range" id="tuningDensity" min="50" max="150" value="100" step="10">
+                    <div class="col-md-3 col-6">
+                        <label class="form-label small text-muted">Notas Abiertas (Open Notes):</label>
+                        <select class="form-select form-select-sm" id="tuningOpenNotesMode">
+                            <option value="bass_only" selected>Solo en Bajo</option>
+                            <option value="all_fretted">Guitarra y Bajo (Nota más grave)</option>
+                            <option value="disabled">Desactivadas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label class="form-label small text-muted">Filtro de Densidad de Notas (<span id="densityLabel">100%</span>):</label>
+                        <input type="range" class="form-range" id="tuningDensity" min="40" max="100" value="100" step="5">
                     </div>
                 </div>
             </div>
 
-            <!-- Live Track Stats & Difficulty Advisor -->
+            <!-- Métricas y Recomendador de Dificultad -->
             <div class="card-panel">
-                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
-                    <div class="card-title mb-0">Métricas y Recomendador de Dificultad</div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                    <div class="card-title mb-0">Análisis de Densidad y Dificultad Calculada</div>
                     <div class="d-flex gap-2">
-                        <select class="form-select form-select-sm" id="statsInstSelect" style="width: auto;">
-                            <option value="guitar">Guitarra Líder</option>
-                            <option value="bass">Bajo</option>
-                            <option value="drums">Batería</option>
-                            <option value="keys">Teclado</option>
-                            <option value="rhythm">Guitarra Rítmica</option>
-                        </select>
+                        <select class="form-select form-select-sm" id="statsInstSelect" style="width: auto;"></select>
                         <select class="form-select form-select-sm" id="statsDiffSelect" style="width: auto;">
                             <option value="Expert" selected>Expert</option>
                             <option value="Hard">Hard</option>
                             <option value="Medium">Medium</option>
                             <option value="Easy">Easy</option>
                         </select>
-                        <button class="btn btn-sm btn-outline-info" id="btnApplySuggestedDiff">Aplicar a song.ini</button>
+                        <button class="btn btn-sm btn-outline-info" id="btnApplySuggestedDiff">Sincronizar Dificultades con song.ini</button>
                     </div>
                 </div>
 
                 <div class="row g-2 text-center">
                     <div class="col-md-2 col-4">
-                        <div class="p-2 bg-dark rounded border border-secondary">
+                        <div class="metric-box">
                             <small class="text-muted d-block">Notas Totales</small>
                             <span class="fs-5 fw-bold text-light" id="statTotalNotes">0</span>
                         </div>
                     </div>
                     <div class="col-md-2 col-4">
-                        <div class="p-2 bg-dark rounded border border-secondary">
+                        <div class="metric-box">
                             <small class="text-muted d-block">NPS Promedio</small>
                             <span class="fs-5 fw-bold text-info" id="statNpsAvg">0.0</span>
                         </div>
                     </div>
                     <div class="col-md-2 col-4">
-                        <div class="p-2 bg-dark rounded border border-secondary">
-                            <small class="text-muted d-block">Pico NPS</small>
+                        <div class="metric-box">
+                            <small class="text-muted d-block">Pico NPS (1s)</small>
                             <span class="fs-5 fw-bold text-warning" id="statNpsPeak">0</span>
                         </div>
                     </div>
                     <div class="col-md-2 col-4">
-                        <div class="p-2 bg-dark rounded border border-secondary">
+                        <div class="metric-box">
                             <small class="text-muted d-block">Acordes</small>
                             <span class="fs-5 fw-bold text-light" id="statChords">0</span>
                         </div>
                     </div>
                     <div class="col-md-2 col-4">
-                        <div class="p-2 bg-dark rounded border border-secondary">
-                            <small class="text-muted d-block">Star Power</small>
+                        <div class="metric-box">
+                            <small class="text-muted d-block">Frases SP</small>
                             <span class="fs-5 fw-bold text-primary" id="statStarPower">0</span>
                         </div>
                     </div>
                     <div class="col-md-2 col-4">
-                        <div class="p-2 bg-dark rounded border border-info">
-                            <small class="text-info d-block">Dificultad Sugerida</small>
-                            <span class="fs-5 fw-bold text-success" id="statSuggestedDiff">Nivel 3</span>
+                        <div class="metric-box metric-box-highlight">
+                            <small class="text-info d-block">Tier Sugerido (0-6)</small>
+                            <span class="fs-5 fw-bold text-success" id="statSuggestedDiff">Nivel 0</span>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 2: LETRAS & SECCIONES -->
+        <!-- PESTAÑA 2: LETRAS Y SECCIONES -->
         <section id="tab-lyrics" class="tab-pane">
-            <!-- Instruction Box -->
-            <div class="instruction-box mb-3">
-                <h6>Guía para Letras y Secciones de Práctica:</h6>
-                <ol>
-                    <li>Selecciona la pista vocal de tu archivo MIDI en el menú inferior.</li>
-                    <li>Pega el texto de la canción; el motor fonético dividirá las palabras en sílabas estándar (<code>hel-</code> y <code>lo</code>).</li>
-                    <li>Haz clic en <strong>Sincronizar Sílabas</strong> para mapear cada sílaba con la nota vocal correspondiente.</li>
-                    <li>Pulsa <strong>✨ Auto-Generar Secciones de Práctica</strong> para crear los saltos de sección (Intro, Verso, Coro, Solo) que Clone Hero y YARG reconocen en el modo práctica.</li>
-                </ol>
+            <div class="card-panel mb-3">
+                <div class="card-title">Guía Rápida de Formato Vocal y Secciones</div>
+                <p class="helper-text mb-0">
+                    1. Selecciona la pista MIDI que contiene la melodía de la voz (o usa las letras ya incrustadas en el MIDI si existen).
+                    2. Escribe o pega la letra: el sistema separa las palabras en sílabas automáticamente, o puedes usar guiones manuales (<code>ca-mi-nar</code>), el signo <code>+</code> para sostener una sílaba en varias notas y <code>#</code> al final para notas habladas (talkies).
+                    3. Cada salto de línea genera una frase nueva (<code>phrase_start</code> / <code>phrase_end</code>). Revisa el resultado en el visor de cinta vocal inferior.
+                </p>
             </div>
 
-            <!-- Visual Vocal Melody & Lyric Roll Preview -->
-            <div class="card-panel mb-3">
-                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-                    <div class="card-title mb-0">Previsualizador de Melodía Vocal y Sílabas</div>
-                    <span class="small text-muted" id="vocalPreviewNoteCount">Sin notas vocales</span>
+            <!-- Cinta de Previsualización Vocal Interactiva -->
+            <div class="card-panel">
+                <div class="card-title">
+                    <span>Vista Previa de Línea Vocal y Sílabas</span>
+                    <div class="d-flex gap-2 align-items-center">
+                        <button class="btn btn-sm btn-outline-success" id="btnPlayVocalPreview">Escuchar Melodía Vocal</button>
+                        <input type="range" class="form-range" id="vocalRibbonScroll" min="0" max="100" value="0" step="0.1" style="width: 220px;">
+                    </div>
                 </div>
-                <div class="vocal-roll-wrapper">
-                    <canvas id="vocalRollCanvas" height="130"></canvas>
+                <div class="canvas-ribbon-wrapper">
+                    <canvas id="vocalPreviewCanvas"></canvas>
                 </div>
             </div>
 
             <div class="row">
-                <div class="col-lg-6">
+                <div class="col-lg-5">
                     <div class="card-panel">
-                        <div class="card-title">Alineación de Letras</div>
+                        <div class="card-title">Editor de Letras y Frases</div>
 
-                        <div class="mb-3">
-                            <label class="form-label small">Pista Vocal de Referencia:</label>
-                            <select class="form-select" id="vocalTrackSelect">
-                                <option value="">Seleccione pista...</option>
-                            </select>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-7">
+                                <label class="form-label small text-muted">Pista MIDI con Melodía Vocal:</label>
+                                <select class="form-select form-select-sm" id="vocalTrackSelect">
+                                    <option value="">Seleccionar pista...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small text-muted">Modo de Separación:</label>
+                                <select class="form-select form-select-sm" id="lyricsModeSelect">
+                                    <option value="syllables" selected>Sílabas Automáticas (ES/EN)</option>
+                                    <option value="manual">Respetar Guiones Manuales</option>
+                                    <option value="words">Palabras Completas</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small">Modo de División:</label>
-                            <select class="form-select" id="lyricsModeSelect">
-                                <option value="syllables" selected>División en Sílabas Fonéticas (Recomendado)</option>
-                                <option value="words">Palabras Completas</option>
-                            </select>
+                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                            <label class="form-label small text-muted mb-0">Texto de la Canción (1 línea = 1 frase en pantalla):</label>
+                            <button class="btn btn-sm btn-outline-secondary" id="btnPreviewSyllables">Pre-dividir Sílabas</button>
                         </div>
+                        <textarea class="form-control font-monospace mb-3" id="lyricsTextInput" rows="8" placeholder="Escribe o pega la letra aquí.&#10;Cada renglón creará una frase vocal."></textarea>
 
-                        <div class="mb-3">
-                            <label class="form-label small">Texto de la Letra:</label>
-                            <textarea class="form-control" id="lyricsTextInput" rows="7" placeholder="Pega la letra de la canción aquí..."></textarea>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary-glow flex-fill" id="btnAlignLyrics">Sincronizar Letras con Notas MIDI</button>
+                            <button class="btn btn-outline-light" id="btnImportMidiLyrics" title="Extraer eventos de letra internos del MIDI">Extraer del MIDI</button>
                         </div>
-
-                        <button class="btn btn-primary-glow w-100" id="btnAlignLyrics">
-                            Sincronizar Sílabas
-                        </button>
-                        <button class="btn btn-outline-info w-100 mt-2" id="btnAutoSections">
-                            ✨ Auto-Generar Secciones de Práctica
-                        </button>
                     </div>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="card-panel">
-                        <div class="card-title">Eventos Líricos y Secciones Generadas</div>
-
-                        <div style="max-height: 400px; overflow-y: auto;">
+                        <div class="card-title">
+                            <span>Eventos Vocales (<span id="lyricCountLabel">0</span>)</span>
+                        </div>
+                        <div class="table-scroll-box">
                             <table class="table-dark-custom">
                                 <thead>
                                     <tr>
                                         <th>Tick</th>
                                         <th>Tiempo</th>
-                                        <th>Tipo</th>
-                                        <th>Texto</th>
+                                        <th>Evento</th>
+                                        <th>Sílaba / Valor</th>
                                     </tr>
                                 </thead>
                                 <tbody id="lyricsEventsBody">
                                     <tr>
                                         <td colspan="4" class="text-center text-muted py-4">
-                                            No se han generado eventos líricos aún.
+                                            Sin eventos vocales sincronizados.
                                         </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3">
+                    <div class="card-panel">
+                        <div class="card-title">
+                            <span>Secciones de Práctica</span>
+                            <button class="btn btn-sm btn-outline-info" id="btnAutoSections">Auto-Detectar</button>
+                        </div>
+                        <div class="input-group input-group-sm mb-3">
+                            <input type="number" class="form-control" id="newSectionMeasure" placeholder="Compás" min="1" value="1" style="max-width: 85px;">
+                            <input type="text" class="form-control" id="newSectionName" placeholder="Ej. Verse 1, Chorus, Solo">
+                            <button class="btn btn-outline-info" id="btnAddSection">Añadir</button>
+                        </div>
+                        <div class="table-scroll-box">
+                            <table class="table-dark-custom">
+                                <thead>
+                                    <tr>
+                                        <th>Tick</th>
+                                        <th>Sección</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sectionsListBody">
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-3">Sin secciones.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -308,174 +338,161 @@
             </div>
         </section>
 
-        <!-- TAB 3: AUDIO & SINCRONIZACIÓN -->
+        <!-- PESTAÑA 3: AUDIO Y SINCRONIZACIÓN -->
         <section id="tab-audio" class="tab-pane">
-            <!-- Instruction Box -->
-            <div class="instruction-box mb-3">
-                <h6>Instrucciones para Sincronización y Audio:</h6>
-                <ol>
-                    <li><strong>Elige qué escuchar:</strong> Puedes reproducir solo el <em>Sintetizador MIDI</em>, solo tu <em>Canción de audio / Stems</em>, o <em>Ambos a la vez</em> para escuchar si van desfasados.</li>
-                    <li><strong>Carga tu audio:</strong> Selecciona el archivo maestro (<code>song.ogg</code> / <code>song.mp3</code>) o los stems separados por instrumento.</li>
-                    <li><strong>Calibra con la Forma de Onda:</strong> En el gráfico espectral, las líneas verticales amarillas/blancas marcan los compases del MIDI. Usa los botones <strong>+/- 10ms o +/- 50ms</strong> hasta que el primer golpe de la canción coincida exactamente con la línea de compás <code>M1</code>.</li>
-                </ol>
-            </div>
-
-            <!-- Audio Mode & MIDI Audition Toolbar -->
             <div class="card-panel mb-3">
-                <div class="row g-3 align-items-center">
-                    <div class="col-md-6">
-                        <label class="form-label">🎧 Modo de Reproducción de Sonido:</label>
-                        <select class="form-select" id="audioModeSelect">
-                            <option value="both" selected>⚡ Ambos Simultáneos (MIDI + Audio para calibrar sincronía)</option>
-                            <option value="midi">🎹 Solo Sintetizador MIDI (Sin necesitar archivo de audio)</option>
-                            <option value="audio">🎵 Solo Archivos de Audio / Stems</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">🎹 Pistas MIDI a Escuchar (Sintetizador):</label>
-                        <select class="form-select" id="midiAuditionSelect">
-                            <option value="all" selected>Toda la banda completa (Todos los instrumentos)</option>
-                            <option value="guitar">Solo Guitarra</option>
-                            <option value="bass">Solo Bajo</option>
-                            <option value="drums">Solo Batería</option>
-                            <option value="vocals">Solo Vocales</option>
-                            <option value="keys">Solo Teclados</option>
-                        </select>
-                    </div>
-                </div>
+                <div class="card-title">Cómo Sincronizar el Audio con las Notas del MIDI</div>
+                <p class="helper-text mb-0">
+                    1. Sube la canción completa (<code>song.ogg</code> / <code>.mp3</code> / <code>.wav</code>) o las pistas separadas por instrumento (stems) en las tarjetas inferiores.
+                    2. En el **Inspector de Espectro y Pulsos**, la onda azul muestra el volumen real del audio y las líneas verticales marcan los pulsos/notas del MIDI.
+                    3. Elige el **Modo de Monitoreo** (Sintetizador MIDI, Archivos de Audio o Ambos simultáneamente) y ajusta el **Desfase Global (Offset ms)** hasta que el primer golpe del audio coincida exactamente con la primera línea de nota del MIDI.
+                </p>
             </div>
 
-            <!-- Waveform & Beat Grid Synchronizer -->
-            <div class="card-panel mb-3">
-                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
-                    <div class="card-title mb-0">Forma de Onda de Audio y Rejilla de Compases MIDI</div>
-                    <span class="small text-muted" id="waveformStatusText">Cargue un audio para ver los transitorios</span>
-                </div>
-                <div class="waveform-wrapper">
-                    <canvas id="audioWaveformCanvas" height="130"></canvas>
-                </div>
-
-                <!-- Interactive Offset Control & Quick Nudge Buttons -->
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <label class="form-label mb-0">Desfase Global (Offset):</label>
-                        <input type="number" class="form-control" id="audioOffsetMs" value="0" step="5" style="width: 110px;">
-                        <span class="small text-muted">ms</span>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-1">
-                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgeMinus50">-50ms</button>
-                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgeMinus10">-10ms</button>
-                        <button class="btn btn-sm btn-outline-primary" id="btnNudgeReset">0ms</button>
-                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgePlus10">+10ms</button>
-                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgePlus50">+50ms</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Stems Upload & Mixers -->
+            <!-- Inspector Visual de Forma de Onda y Sincronización -->
             <div class="card-panel">
-                <div class="card-title">Canales de Audio y Pistas Separadas (Stems)</div>
-                <div class="row g-3">
-                    <div class="col-md-4 stem-card">
-                        <div class="stem-header">
-                            <span>Canción Completa (song.ogg)</span>
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                    <div class="card-title mb-0">Inspector de Forma de Onda y Rejilla de Compases MIDI</div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <label class="small text-muted">Fuente de Audio:</label>
+                        <select class="form-select form-select-sm" id="audioSourceMode" style="width: auto;">
+                            <option value="both" selected>Ambos (Stems de Audio + Sintetizador MIDI)</option>
+                            <option value="stems_only">Solo Archivos de Audio / Stems</option>
+                            <option value="midi_only">Solo Sintetizador MIDI Interno</option>
+                        </select>
+                        <button class="btn btn-sm btn-success" id="btnAudioTabPlay">Reproducir Prueba</button>
+                    </div>
+                </div>
+
+                <div class="canvas-waveform-wrapper">
+                    <canvas id="waveformSyncCanvas"></canvas>
+                </div>
+
+                <div class="row g-3 align-items-center mt-2">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Desfase Global (Offset en ms):</label>
+                        <div class="input-group input-group-sm">
+                            <button class="btn btn-outline-secondary" id="btnOffsetMinus10">-10ms</button>
+                            <input type="number" class="form-control text-center" id="audioOffsetMs" value="0" step="5">
+                            <button class="btn btn-outline-secondary" id="btnOffsetPlus10">+10ms</button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Volumen Sintetizador MIDI (<span id="midiVolLabel">70%</span>):</label>
+                        <input type="range" class="form-range" id="midiSynthVolume" min="0" max="100" value="70">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Volumen Audio / Stems (<span id="stemVolLabel">90%</span>):</label>
+                        <input type="range" class="form-range" id="masterStemVolume" min="0" max="100" value="90">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Zoom Temporal (Inspector):</label>
+                        <input type="range" class="form-range" id="waveformZoom" min="2" max="20" value="8" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matriz de Archivos Stems -->
+            <div class="card-panel">
+                <div class="card-title">Archivos de Audio y Pistas Separadas (Stems)</div>
+                <div class="stems-grid">
+                    <div class="stem-card">
+                        <div class="stem-card-header">
+                            <span>Canción Maestra (song.ogg)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_song">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_song">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_song" accept="audio/*">
-                        <small class="text-muted" id="stemName_song">Sin archivo</small>
+                        <small class="text-muted" id="stemName_song">Sin archivo cargado</small>
                     </div>
 
-                    <div class="col-md-4 stem-card">
-                        <div class="stem-header">
-                            <span>Guitarra (Guitar.wav)</span>
+                    <div class="stem-card">
+                        <div class="stem-card-header">
+                            <span>Guitarra (guitar.ogg)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_guitar">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_guitar">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_guitar" accept="audio/*">
-                        <small class="text-muted" id="stemName_guitar">Sin archivo</small>
+                        <small class="text-muted" id="stemName_guitar">Sin archivo cargado</small>
                     </div>
 
-                    <div class="col-md-4 stem-card">
-                        <div class="stem-header">
-                            <span>Bajo (Bass.wav)</span>
+                    <div class="stem-card">
+                        <div class="stem-card-header">
+                            <span>Bajo (bass.ogg)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_bass">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_bass">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_bass" accept="audio/*">
-                        <small class="text-muted" id="stemName_bass">Sin archivo</small>
+                        <small class="text-muted" id="stemName_bass">Sin archivo cargado</small>
                     </div>
 
-                    <div class="col-md-4 stem-card">
-                        <div class="stem-header">
-                            <span>Batería (Drums.wav)</span>
+                    <div class="stem-card">
+                        <div class="stem-card-header">
+                            <span>Batería (drums.ogg)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_drums">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_drums">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_drums" accept="audio/*">
-                        <small class="text-muted" id="stemName_drums">Sin archivo</small>
+                        <small class="text-muted" id="stemName_drums">Sin archivo cargado</small>
                     </div>
 
-                    <div class="col-md-4 stem-card">
-                        <div class="stem-header">
-                            <span>Voz (Vocals.wav)</span>
+                    <div class="stem-card">
+                        <div class="stem-card-header">
+                            <span>Voz (vocals.ogg)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_vocals">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_vocals">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_vocals" accept="audio/*">
-                        <small class="text-muted" id="stemName_vocals">Sin archivo</small>
+                        <small class="text-muted" id="stemName_vocals">Sin archivo cargado</small>
                     </div>
 
-                    <div class="col-md-4 stem-card">
-                        <div class="stem-header">
-                            <span>Teclado (Keys.wav)</span>
+                    <div class="stem-card">
+                        <div class="stem-card-header">
+                            <span>Teclados (keys.ogg)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_keys">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_keys">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_keys" accept="audio/*">
-                        <small class="text-muted" id="stemName_keys">Sin archivo</small>
+                        <small class="text-muted" id="stemName_keys">Sin archivo cargado</small>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 4: VISUALIZADOR 3D -->
+        <!-- PESTAÑA 4: VISUALIZADOR 3D -->
         <section id="tab-highway" class="tab-pane">
             <div class="highway-wrapper">
                 <canvas id="highwayCanvas"></canvas>
             </div>
 
-            <!-- Player Bar -->
             <div class="player-bar">
                 <div class="player-controls">
                     <button class="btn btn-success" id="btnPlayPause">Reproducir</button>
+                    <button class="btn btn-outline-secondary" id="btnRestartVis">Inicio</button>
                 </div>
 
                 <div class="scrubber-container">
-                    <input type="range" class="scrubber-slider" id="timeScrubber" min="0" max="100" value="0" step="0.1">
-                    <span class="small text-muted font-monospace" id="timeDisplay">0:00 / 0:00</span>
+                    <input type="range" class="scrubber-slider" id="timeScrubber" min="0" max="100" value="0" step="0.05">
+                    <span class="small text-muted font-monospace" id="timeDisplay">0:00.0 / 0:00.0</span>
                 </div>
 
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <label class="small fw-bold" style="color: #cbd5e1;">Pista:</label>
-                    <select class="form-select form-select-sm" id="highwayInstSelect" style="width: auto;">
-                        <option value="guitar">Guitarra Líder</option>
-                    </select>
+                    <label class="small text-muted">Instrumento:</label>
+                    <select class="form-select form-select-sm" id="highwayInstSelect" style="width: auto;"></select>
 
-                    <label class="small fw-bold" style="color: #cbd5e1;">Dificultad:</label>
+                    <label class="small text-muted">Dificultad:</label>
                     <select class="form-select form-select-sm" id="highwayDiffSelect" style="width: auto;">
                         <option value="Expert" selected>Expert</option>
                         <option value="Hard">Hard</option>
@@ -483,69 +500,55 @@
                         <option value="Easy">Easy</option>
                     </select>
 
-                    <label class="small fw-bold" style="color: #cbd5e1;">Audio:</label>
-                    <select class="form-select form-select-sm" id="highwayAudioModeSelect" style="width: auto;">
-                        <option value="both" selected>⚡ MIDI + Canción</option>
-                        <option value="midi">🎹 Solo MIDI</option>
-                        <option value="audio">🎵 Solo Canción</option>
-                    </select>
-
-                    <label class="small fw-bold" style="color: #cbd5e1;">Scroll:</label>
+                    <label class="small text-muted">Velocidad Highway:</label>
                     <select class="form-select form-select-sm" id="highwaySpeedSelect" style="width: auto;">
-                        <option value="1.5">Rápido (1.5s)</option>
-                        <option value="2.2" selected>Estándar (2.2s)</option>
-                        <option value="3.0">Lento (3.0s)</option>
+                        <option value="1.3">Hyperspeed (1.3s)</option>
+                        <option value="1.8" selected>Estándar (1.8s)</option>
+                        <option value="2.5">Moderada (2.5s)</option>
                     </select>
 
-                    <label class="small fw-bold" style="color: #cbd5e1;">Velocidad:</label>
+                    <label class="small text-muted">Tempo:</label>
                     <select class="form-select form-select-sm" id="playbackRateSelect" style="width: auto;">
-                        <option value="0.5">0.5x (Lenta)</option>
+                        <option value="0.5">0.5x</option>
                         <option value="0.75">0.75x</option>
-                        <option value="1.0" selected>1.0x (Normal)</option>
+                        <option value="1.0" selected>1.0x</option>
                         <option value="1.25">1.25x</option>
                     </select>
 
-                    <button class="btn btn-sm btn-outline-warning" id="btnMetronomeToggle" title="Activar metrónomo">
-                        🔔 Metrónomo
-                    </button>
+                    <button class="btn btn-sm btn-outline-warning" id="btnMetronomeToggle">Metrónomo: OFF</button>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 5: METADATOS & EXPORTAR -->
+        <!-- PESTAÑA 5: METADATOS Y EXPORTACIÓN -->
         <section id="tab-export" class="tab-pane">
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card-panel">
-                        <!-- Sub-tabs for metadata categories -->
                         <ul class="nav nav-tabs border-secondary mb-3" id="metaSubTabs" role="tablist">
                             <li class="nav-item">
-                                <button class="nav-link active text-light" id="subtab-general-btn" data-bs-toggle="tab" data-bs-target="#subtab-general" type="button">General</button>
+                                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#subtab-general" type="button">Datos Principales</button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link text-light" id="subtab-diffs-btn" data-bs-toggle="tab" data-bs-target="#subtab-diffs" type="button">Dificultades</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#subtab-diffs" type="button">Dificultades (song.ini)</button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link text-light" id="subtab-engine-btn" data-bs-toggle="tab" data-bs-target="#subtab-engine" type="button">Motor / Juego</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#subtab-engine" type="button">Parámetros de Motor</button>
                             </li>
                             <li class="nav-item">
-                                <button class="nav-link text-light" id="subtab-credits-btn" data-bs-toggle="tab" data-bs-target="#subtab-credits" type="button">Créditos</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link text-light" id="subtab-links-btn" data-bs-toggle="tab" data-bs-target="#subtab-links" type="button">Enlaces</button>
+                                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#subtab-credits" type="button">Créditos y Enlaces</button>
                             </li>
                         </ul>
 
-                        <div class="tab-content" id="metaSubTabsContent">
-                            <!-- Subtab: General -->
+                        <div class="tab-content">
                             <div class="tab-pane fade show active" id="subtab-general">
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label small text-muted">Título (name):</label>
+                                        <label class="form-label small text-muted">Título de la Canción (name):</label>
                                         <input type="text" class="form-control" id="metaName" value="Song Title">
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small text-muted">Artista (artist):</label>
+                                        <label class="form-label small text-muted">Artista / Banda (artist):</label>
                                         <input type="text" class="form-control" id="metaArtist" value="Artist">
                                     </div>
                                     <div class="col-md-6">
@@ -558,7 +561,7 @@
                                     </div>
                                     <div class="col-md-3 col-6">
                                         <label class="form-label small text-muted">Año (year):</label>
-                                        <input type="text" class="form-control" id="metaYear" value="2024">
+                                        <input type="text" class="form-control" id="metaYear" value="2026">
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label small text-muted">Género (genre):</label>
@@ -569,212 +572,82 @@
                                         <input type="text" class="form-control" id="metaSubGenre" value="Alternative">
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label small text-muted">Etiquetas (tags):</label>
-                                        <input type="text" class="form-control" id="metaTags" value="">
-                                    </div>
-                                    <div class="col-md-6">
                                         <label class="form-label small text-muted">Charter Principal (charter):</label>
                                         <input type="text" class="form-control" id="metaCharter" value="Chart-Lab">
                                     </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">Rating (rating):</label>
-                                        <input type="number" class="form-control" id="metaRating" min="0" max="5" value="1">
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Inicio Pre-escucha (preview_start_time ms):</label>
+                                        <input type="number" class="form-control" id="metaPreviewStart" value="15000" step="1000">
                                     </div>
-                                    <div class="col-md-3 col-6">
+                                    <div class="col-md-4">
                                         <label class="form-label small text-muted">Icono (icon):</label>
                                         <input type="text" class="form-control" id="metaIcon" value="chartlab">
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <label class="form-label small text-muted">Playlist (playlist):</label>
                                         <input type="text" class="form-control" id="metaPlaylist" value="">
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">Ubicación (location):</label>
-                                        <input type="text" class="form-control" id="metaLocation" value="">
-                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Subtab: Difficulties -->
                             <div class="tab-pane fade" id="subtab-diffs">
-                                <p class="text-muted small mb-3">Valores enteros normalizados (0 = No disponible, 1-6 = Rango de dificultad).</p>
+                                <p class="helper-text">Usa -1 para instrumentos no presentes en el chart, o valores de 0 a 6 según la intensidad.</p>
                                 <div class="row g-2">
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_band:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffBand" min="0" max="6" value="2">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_guitar:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffGuitar" min="0" max="6" value="3">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_guitarghl:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffGuitarGhl" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_guitar_coop:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffGuitarCoop" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_bass:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffBass" min="0" max="6" value="2">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_bassghl:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffBassGhl" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_rhythm:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffRhythm" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_rhythm_ghl:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffRhythmGhl" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_drums:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffDrums" min="0" max="6" value="3">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_drums_real:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffDrumsReal" min="0" max="6" value="3">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_elite_drums:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffEliteDrums" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_keys:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffKeys" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_keys_real:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffKeysReal" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_vocals:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffVocals" min="0" max="6" value="3">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_vocals_harm:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffVocalsHarm" min="0" max="6" value="0">
-                                    </div>
-                                    <div class="col-md-3 col-6">
-                                        <label class="form-label small text-muted">diff_dance:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaDiffDance" min="0" max="6" value="0">
-                                    </div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_band:</label><input type="number" class="form-control form-control-sm" id="metaDiffBand" min="-1" max="6" value="3"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_guitar:</label><input type="number" class="form-control form-control-sm" id="metaDiffGuitar" min="-1" max="6" value="3"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_bass:</label><input type="number" class="form-control form-control-sm" id="metaDiffBass" min="-1" max="6" value="2"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_rhythm:</label><input type="number" class="form-control form-control-sm" id="metaDiffRhythm" min="-1" max="6" value="-1"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_guitar_coop:</label><input type="number" class="form-control form-control-sm" id="metaDiffGuitarCoop" min="-1" max="6" value="-1"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_guitarghl:</label><input type="number" class="form-control form-control-sm" id="metaDiffGuitarGhl" min="-1" max="6" value="-1"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_bassghl:</label><input type="number" class="form-control form-control-sm" id="metaDiffBassGhl" min="-1" max="6" value="-1"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_drums:</label><input type="number" class="form-control form-control-sm" id="metaDiffDrums" min="-1" max="6" value="3"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_drums_real:</label><input type="number" class="form-control form-control-sm" id="metaDiffDrumsReal" min="-1" max="6" value="3"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_keys:</label><input type="number" class="form-control form-control-sm" id="metaDiffKeys" min="-1" max="6" value="-1"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_vocals:</label><input type="number" class="form-control form-control-sm" id="metaDiffVocals" min="-1" max="6" value="2"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_vocals_harm:</label><input type="number" class="form-control form-control-sm" id="metaDiffVocalsHarm" min="-1" max="6" value="-1"></div>
+                                    <div class="col-md-3 col-6"><label class="form-label small text-muted">diff_dance:</label><input type="number" class="form-control form-control-sm" id="metaDiffDance" min="-1" max="6" value="-1"></div>
                                 </div>
                             </div>
 
-                            <!-- Subtab: Engine / Gameplay -->
                             <div class="tab-pane fade" id="subtab-engine">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="form-check form-switch mt-2">
                                             <input class="form-check-input" type="checkbox" id="metaProDrums" checked>
-                                            <label class="form-check-label small" for="metaProDrums">pro_drums (Platillos Pro)</label>
+                                            <label class="form-check-label small" for="metaProDrums">pro_drums = 1 (Habilitar platillos en Clone Hero / YARG)</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-check form-switch mt-2">
                                             <input class="form-check-input" type="checkbox" id="metaFiveLaneDrums">
-                                            <label class="form-check-label small" for="metaFiveLaneDrums">five_lane_drums (Formato GH 5 calles)</label>
+                                            <label class="form-check-label small" for="metaFiveLaneDrums">five_lane_drums = 1 (Batería de 5 carriles)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="metaSustainCutoff">
+                                            <label class="form-check-label small" for="metaSustainCutoff">sustain_cutoff_threshold = 0 (Forzar corte estricto)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="metaGhwtDeReady">
+                                            <label class="form-check-label small" for="metaGhwtDeReady">Exportar claves adicionales para GHWT: Definitive Edition</label>
                                         </div>
                                     </div>
                                     <div class="col-md-12">
-                                        <div class="form-check form-switch mt-2">
-                                            <input class="form-check-input" type="checkbox" id="metaGhwtDeReady">
-                                            <label class="form-check-label small" for="metaGhwtDeReady">ghwt_de (Preparar metadatos para Guitar Hero World Tour Definitive Edition)</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small text-muted">parts_vocals_harm:</label>
-                                        <select class="form-select form-select-sm" id="metaPartsVocalsHarm">
-                                            <option value="1" selected>1 (Solista)</option>
-                                            <option value="2">2 (Dúo / Harm 2)</option>
-                                            <option value="3">3 (Trío / Harm 3)</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small text-muted">vocal_scroll_speed:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaVocalScrollSpeed" value="100">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small text-muted">modchart:</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaModchart" value="0">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">video_start_time (ms):</label>
-                                        <input type="number" class="form-control form-control-sm" id="metaVideoStartTime" value="0">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">loading_phrase:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaLoadingPhrase" value="Charted with Chart-Lab Suite">
+                                        <label class="form-label small text-muted">Frase de pantalla de carga (loading_phrase):</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaLoadingPhrase" value="Generado y validado con Chart-Lab">
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Subtab: Credits -->
                             <div class="tab-pane fade" id="subtab-credits">
                                 <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">credit_composed_by:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaCreditComposedBy">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">credit_produced_by:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaCreditProducedBy">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">credit_mixed_by:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaCreditMixedBy">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">credit_mastered_by:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaCreditMasteredBy">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">credit_engineered_by:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaCreditEngineeredBy">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">credit_album_art_by:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaCreditAlbumArtBy">
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label small text-muted">credit_license:</label>
-                                        <input type="text" class="form-control form-control-sm" id="metaCreditLicense">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Subtab: Social / Community Links -->
-                            <div class="tab-pane fade" id="subtab-links">
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">link_spotify:</label>
-                                        <input type="url" class="form-control form-control-sm" id="metaLinkSpotify" placeholder="https://open.spotify.com/track/...">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">link_youtube:</label>
-                                        <input type="url" class="form-control form-control-sm" id="metaLinkYoutube" placeholder="https://youtube.com/watch?v=...">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">link_bandcamp:</label>
-                                        <input type="url" class="form-control form-control-sm" id="metaLinkBandcamp">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">link_soundcloud:</label>
-                                        <input type="url" class="form-control form-control-sm" id="metaLinkSoundcloud">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">link_twitter:</label>
-                                        <input type="url" class="form-control form-control-sm" id="metaLinkTwitter">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label small text-muted">link_instagram:</label>
-                                        <input type="url" class="form-control form-control-sm" id="metaLinkInstagram">
-                                    </div>
+                                    <div class="col-md-6"><label class="form-label small text-muted">credit_composed_by:</label><input type="text" class="form-control form-control-sm" id="metaCreditComposedBy"></div>
+                                    <div class="col-md-6"><label class="form-label small text-muted">credit_produced_by:</label><input type="text" class="form-control form-control-sm" id="metaCreditProducedBy"></div>
+                                    <div class="col-md-6"><label class="form-label small text-muted">link_spotify:</label><input type="url" class="form-control form-control-sm" id="metaLinkSpotify"></div>
+                                    <div class="col-md-6"><label class="form-label small text-muted">link_youtube:</label><input type="url" class="form-control form-control-sm" id="metaLinkYoutube"></div>
                                 </div>
                             </div>
                         </div>
@@ -783,84 +656,64 @@
 
                 <div class="col-lg-4">
                     <div class="card-panel text-center">
-                        <div class="card-title text-center">Portada (album.png)</div>
+                        <div class="card-title justify-content-center">Portada del Álbum (album.png)</div>
                         <div class="my-3">
-                            <img id="albumArtPreview" src="https://via.placeholder.com/200x200/161f30/38bdf8?text=Album+Art" class="rounded shadow" style="width: 180px; height: 180px; object-fit: cover;" alt="Portada">
+                            <canvas id="albumArtCanvas" width="180" height="180" class="rounded border border-secondary"></canvas>
                         </div>
-                        <input type="file" class="form-control form-control-sm mb-3" id="albumArtInput" accept="image/png,image/jpeg">
+                        <input type="file" class="form-control form-control-sm" id="albumArtInput" accept="image/png,image/jpeg">
                     </div>
 
                     <div class="card-panel">
-                        <div class="card-title">Exportación de Paquete</div>
-                        <button class="btn btn-success-glow w-100 py-3 mb-2" id="btnExportZip">
-                            Descargar Paquete ZIP
-                        </button>
-
-                        <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-outline-info flex-fill" id="btnExportChartOnly">notes.chart</button>
-                            <button class="btn btn-outline-info flex-fill" id="btnExportIniOnly">song.ini</button>
-                            <button class="btn btn-outline-secondary flex-fill" id="btnViewChartText">Ver Chart</button>
+                        <div class="card-title">Descarga y Paquete Jugable</div>
+                        <button class="btn btn-success-glow w-100 py-2 mb-2" id="btnExportZip">Descargar Carpeta Completa (.ZIP)</button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-info btn-sm flex-fill" id="btnExportChartOnly">notes.chart</button>
+                            <button class="btn btn-outline-info btn-sm flex-fill" id="btnExportIniOnly">song.ini</button>
+                            <button class="btn btn-outline-light btn-sm flex-fill" id="btnViewChartText">Inspeccionar</button>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 6: INFORMACIÓN -->
+        <!-- PESTAÑA 6: INFORMACIÓN -->
         <section id="tab-about" class="tab-pane">
             <div class="card-panel">
                 <div class="card-title">Acerca de Chart-Lab</div>
-                <p class="fs-6" style="color: #f1f5f9; line-height: 1.7;">
-                    <strong>Chart-Lab</strong> es una suite interactiva creada y desarrollada por <strong>Ey-Liam</strong>, concebida como un laboratorio accesible y educativo para la creación, ajuste y experimentación de canciones para rhythm games como <strong>Clone Hero</strong>, <strong>YARG (Yet Another Rhythm Game)</strong> y <strong>Guitar Hero World Tour: Definitive Edition (GHWT:DE)</strong>.
+                <p class="helper-text">
+                    <strong>Chart-Lab</strong> es una herramienta creada desde cero por <strong>Ey-Liam</strong> con el propósito de ayudar a usuarios principiantes a generar sus propios charts a partir de archivos MIDI y aprender sobre el funcionamiento interno del código de Clone Hero y YARG (con preparación de metadatos para Guitar Hero World Tour: Definitive Edition). Está concebida como un laboratorio accesible y educativo, sin buscar reemplazar el trabajo manual detallado de un charter experimentado en editores dedicados.
                 </p>
-
-                <div class="instruction-box mb-4">
-                    <h6>Propósito del Proyecto:</h6>
-                    <p style="color: #cbd5e1; margin-bottom: 0;">
-                        El objetivo es permitir a jugadores casuales y novatos crear sus propios charts directamente desde archivos MIDI sin necesidad de conocimientos avanzados de programación o de teoría compleja de charting, comprendiendo en el proceso la anatomía de los tempos, trastes, letras y metadatos. No busca reemplazar el trabajo manual minucioso de charters profesionales en herramientas dedicadas como Moonscraper, sino ofrecer una alternativa lúdica, rápida y sin fricción técnica.
-                    </p>
-                </div>
-
-                <h6 class="text-info fw-bold mb-3">Ecosistema y Capacidades:</h6>
-                <ul style="color: #e2e8f0; line-height: 1.8;">
-                    <li><strong>Soporte Multi-Instrumento Completo:</strong> Lead Guitar (5 trastes), GHL Guitar (6 botones), Bajo (5 trastes), Bajo GHL, Guitarra Rítmica (5 y 6 botones), Guitar Coop, Batería Pro (con platillos 64, 65, 66), Batería GH (5 carriles), Teclados, Vocales Líder, Armonías Vocales 1-3 y Pista de Baile.</li>
-                    <li><strong>4 Niveles de Dificultad CSC:</strong> Expert, Hard, Medium y Easy con cumplimiento estricto de reglas de rango (sin notas naranja en Medium, sin azul/naranja en Easy).</li>
-                    <li><strong>Sintetizador Polifónico MIDI Incorporado:</strong> Escucha los instrumentos de tu archivo MIDI en tiempo real mediante síntesis por Web Audio API sin requerir MP3.</li>
-                    <li><strong>Calibrador Espectral de Forma de Onda:</strong> Visualiza la onda de audio y la cuadrícula de compases para ajustar el offset milimétricamente.</li>
-                    <li><strong>Alineador Fonético de Letras:</strong> Silabificación automática con marcas de frase <code>phrase_start</code> y <code>phrase_end</code> para Clone Hero y YARG.</li>
-                    <li><strong>Validación Cero-Defectos:</strong> Recorte automático con regla de 70ms en sustains y ordenamiento monotónico estricto.</li>
-                    <li><strong>Exportación Estándar Oficial:</strong> Paquetes ZIP estructurados con <code>notes.chart</code>, <code>song.ini</code> y pistas de audio organizadas por carpeta.</li>
-                </ul>
+                <p class="text-muted small mb-0">
+                    <sub><small>Autor único del código: Ey-Liam. Ideas e inspiración conceptual basadas en herramientas de la comunidad: EFHIII (midi-ch), TheBoxyBear (LyricEditor), EmperorJacoba (PenguinChartEditor), Chart-Forge, Octave Studio y estándares de documentación RBN/CSC.</small></sub>
+                </p>
             </div>
         </section>
 
     </main>
 
-    <!-- Modal for viewing generated chart text -->
+    <!-- Modal de Inspección de Código .chart -->
     <div class="modal fade" id="chartPreviewModal" tabindex="-1">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content bg-dark text-light border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title">notes.chart</h5>
+                    <h6 class="modal-title font-monospace">Vista Previa del Código: notes.chart</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <textarea class="form-control bg-black text-light font-monospace" id="chartTextPreview" rows="22" readonly></textarea>
+                    <textarea class="form-control bg-black text-light font-monospace small" id="chartTextPreview" rows="20" readonly></textarea>
                 </div>
                 <div class="modal-footer border-secondary">
-                    <button class="btn btn-outline-info" id="btnCopyChartText">Copiar</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn btn-sm btn-outline-info" id="btnCopyChartText">Copiar al Portapapeles</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
     <footer class="app-footer">
-        <small class="text-muted">Chart-Lab Suite &bull; <sub>Inspiración conceptual: EFHIII</sub></small>
+        <span>Creado por Ey-Liam</span> &bull; <sub><small>Inspiración conceptual: EFHIII y herramientas de la comunidad de rhythm games</small></sub>
     </footer>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="js/core/midi-parser.js"></script>
