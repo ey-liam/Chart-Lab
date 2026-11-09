@@ -372,11 +372,12 @@ five_lane_drums = ${fiveLaneDrums}
 vocal_scroll_speed = ${vocalScrollSpeed}
 video_start_time = ${videoStartTime}
 end_events = ${endEvents}
-
+${metadata.ghwtDeReady ? 'ghwt_de = true\n' : ''}
 ; --- Metadata & Credits ---
 credit_arranged_by = Ey-Liam
-credit_courtesy_of = EFHIII
-credit_other = Ey-Liam & EFHIII
+credit_courtesy_of = Ey-Liam
+credit_other = Ey-Liam
+; Concept inspiration: EFHIII & rhythm gaming community
 `;
         return ini;
     }

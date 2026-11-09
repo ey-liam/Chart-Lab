@@ -68,6 +68,10 @@
 
             this.hitParticles = [];
 
+            this.metronomeEnabled = false;
+            this.metronomeCallback = null;
+            this.lastTriggeredBeat = -1;
+
             this.resize();
             window.addEventListener('resize', () => this.resize());
         }
@@ -85,7 +89,14 @@
             this.midiData = midiData;
             this.allCharts = chartedData;
             this.lyricEvents = lyricEvents || [];
+            this.lastTriggeredBeat = -1;
             this.updateCurrentChart();
+        }
+
+        setMetronome(enabled, callback) {
+            this.metronomeEnabled = !!enabled;
+            this.metronomeCallback = callback || null;
+            this.lastTriggeredBeat = -1;
         }
 
         updateCurrentChart() {
@@ -134,6 +145,18 @@
             const isDrumMode = this.selectedInstrument.includes('drum');
             const isGHLMode = this.selectedInstrument.includes('ghl');
             const isDanceMode = this.selectedInstrument === 'dance';
+
+            // Metronome audio pulse on downbeat/beat
+            if (this.metronomeEnabled && this.metronomeCallback && this.midiData && this.midiData.tempos && this.midiData.tempos.length > 0 && this.audio && this.audio.isPlaying) {
+                const bpm = this.midiData.tempos[0].bpm || 120;
+                const beatIntervalSec = 60.0 / bpm;
+                const currentBeat = Math.floor(currentTime / beatIntervalSec);
+                if (currentBeat !== this.lastTriggeredBeat && currentBeat >= 0) {
+                    this.lastTriggeredBeat = currentBeat;
+                    const isDownbeat = (currentBeat % 4 === 0);
+                    this.metronomeCallback(isDownbeat);
+                }
+            }
 
             // 1. Draw Background & Highway Surface
             this.drawHighway(ctx, w, h, isDrumMode, isGHLMode, isDanceMode);

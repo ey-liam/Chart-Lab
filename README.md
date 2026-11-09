@@ -9,7 +9,9 @@ Suite multiplataforma para análisis, generación y validación de charts para r
 
 ## ¿Qué es y para qué sirve?
 
-**Chart-Lab** es una herramienta diseñada para convertir archivos MIDI en canciones completamente jugables y optimizadas. Su objetivo es automatizar el proceso técnico de charting —asignación de trastes, separación de dificultades, marcación de platillos en batería, alineación de letras y validación de reglas— permitiendo a jugadores y charters obtener canciones listas para jugar o bases profesionales para ajustar sin errores de sincronización.
+**Chart-Lab** es una suite interactiva creada por **Ey-Liam** pensada como un laboratorio accesible y educativo. Su objetivo es ayudar a usuarios principiantes y casuales a crear sus propios charts y aprender en el proceso cómo funciona la estructura interna de notas, tempos y metadatos de los rhythm games (Clone Hero, YARG y próximamente Guitar Hero World Tour: Definitive Edition).
+
+No pretende sustituir el trabajo manual milimétrico de un charter dedicado en editores como Moonscraper, sino ofrecer un entorno amigable y sin barreras técnicas para experimentar, comprender el formato `.chart` / `song.ini` y disfrutar canciones jugables al instante a partir de pistas MIDI.
 
 ---
 
@@ -75,9 +77,13 @@ python python/cli.py <ruta-al-midi> --name "Nombre" --artist "Artista" --out ./o
 
 ---
 
+## Autor y Créditos
+
+Desarrollado y creado por **Ey-Liam**.
+
 ## Licencia
 
 Distribuido bajo la Licencia MIT. Consulta `LICENSE` para más información.
 
 <br>
-<sub>Inspiration: Conceptual idea inspired by EFHIII.</sub>
+<sub>Inspiración de ideas y conceptos: EFHIII y proyectos de la comunidad de rhythm gaming.</sub>

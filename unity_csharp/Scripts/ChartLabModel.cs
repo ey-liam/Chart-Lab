@@ -121,8 +121,9 @@ namespace ChartLab.Core
 
         // Credits
         public string CreditArrangedBy = "Ey-Liam";
-        public string CreditCourtesyOf = "EFHIII";
-        public string CreditOther = "Ey-Liam & EFHIII";
+        public string CreditCourtesyOf = "Ey-Liam";
+        public string CreditOther = "Ey-Liam";
+        public bool GhwtDeReady = false;
         public string CreditComposedBy = "";
         public string CreditProducedBy = "";
         public string CreditMixedBy = "";

@@ -321,6 +321,11 @@
         const config = Object.assign({}, DEFAULT_CONFIGS.guitar, userConfig);
         const maxFrets = difficulty === 'Easy' ? 3 : (difficulty === 'Medium' ? 4 : config.frets);
         const maxChords = difficulty === 'Easy' ? 1 : (difficulty === 'Medium' ? 1 : config.maxChordSize);
+        const style = userConfig.style || 'balanced';
+        let effMaxChords = maxChords;
+        if (style === 'melodic') effMaxChords = Math.min(1, maxChords);
+        else if (style === 'rhythmic' && difficulty !== 'Easy') effMaxChords = Math.max(2, maxChords);
+
         const density = userConfig.density !== undefined ? userConfig.density : 1.0;
         const minSustainTicks = Math.round(ppq * config.minSustainQuarterBeats);
         // Enforce 70ms sustain gap rule from official CSC & Wagsii guidelines
@@ -372,7 +377,7 @@
                 continue;
             }
 
-            if (distinctPitches.length === 1 || maxChords === 1) {
+            if (distinctPitches.length === 1 || effMaxChords === 1) {
                 const pitch = distinctPitches[distinctPitches.length - 1];
                 let fret = Math.round(((pitch - minPitch) / pitchRange) * (maxFrets - 1));
                 fret = Math.max(0, Math.min(maxFrets - 1, fret));
@@ -384,7 +389,7 @@
                 prevFret = fret;
                 prevPitch = pitch;
             } else {
-                const selectedPitches = distinctPitches.slice(0, maxChords);
+                const selectedPitches = distinctPitches.slice(0, effMaxChords);
                 let frets = [];
                 for (let p of selectedPitches) {
                     let f = Math.round(((p - minPitch) / pitchRange) * (maxFrets - 1));

@@ -357,6 +357,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const tuningStyle = document.getElementById('tuningStyle');
+    if (tuningStyle) {
+        tuningStyle.addEventListener('change', (e) => {
+            const style = e.target.value;
+            for (let k in state.configs) state.configs[k].style = style;
+            recalculateCharts();
+            showToast(`Estilo de digitación: ${style}`, 'info');
+        });
+    }
+
     const btnReRoll = document.getElementById('btnReRoll');
     if (btnReRoll) {
         btnReRoll.addEventListener('click', () => {
@@ -453,6 +463,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const speed = parseFloat(e.target.value);
         state.highway.speedWindowSeconds = speed;
     });
+
+    const playbackRateSelect = document.getElementById('playbackRateSelect');
+    if (playbackRateSelect) {
+        playbackRateSelect.addEventListener('change', (e) => {
+            const rate = parseFloat(e.target.value) || 1.0;
+            state.audioEngine.setPlaybackRate(rate);
+            showToast(`Velocidad de reproducción: ${rate}x`, 'info');
+        });
+    }
+
+    let metronomeActive = false;
+    const btnMetronomeToggle = document.getElementById('btnMetronomeToggle');
+    if (btnMetronomeToggle) {
+        btnMetronomeToggle.addEventListener('click', () => {
+            metronomeActive = !metronomeActive;
+            btnMetronomeToggle.classList.toggle('active', metronomeActive);
+            btnMetronomeToggle.classList.toggle('btn-warning', metronomeActive);
+            btnMetronomeToggle.classList.toggle('btn-outline-warning', !metronomeActive);
+            state.highway.setMetronome(metronomeActive, (isDownbeat) => {
+                state.audioEngine.playMetronomeClick(isDownbeat);
+            });
+            showToast(metronomeActive ? 'Metrónomo activado' : 'Metrónomo desactivado', 'info');
+        });
+    }
 
     const btnPlayPause = document.getElementById('btnPlayPause');
     btnPlayPause.addEventListener('click', togglePlayback);
@@ -653,6 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setCheck('metaProDrums', m.proDrums);
         setCheck('metaFiveLaneDrums', m.fiveLaneDrums);
+        setCheck('metaGhwtDeReady', m.ghwtDeReady);
         setVal('metaPartsVocalsHarm', m.partsVocalsHarm);
         setVal('metaVocalScrollSpeed', m.vocalScrollSpeed);
         setVal('metaModchart', m.modchart);
@@ -723,6 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         m.proDrums = getCheck('metaProDrums', true);
         m.fiveLaneDrums = getCheck('metaFiveLaneDrums', false);
+        m.ghwtDeReady = getCheck('metaGhwtDeReady', false);
         m.partsVocalsHarm = getNum('metaPartsVocalsHarm', 1);
         m.vocalScrollSpeed = getNum('metaVocalScrollSpeed', 100);
         m.modchart = getNum('metaModchart', 0);

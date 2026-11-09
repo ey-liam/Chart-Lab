@@ -95,7 +95,7 @@
                     <button class="btn btn-sm btn-outline-secondary" id="btnReRoll">Re-generar</button>
                 </div>
                 <div class="row g-3">
-                    <div class="col-md-3 col-6">
+                    <div class="col-md-2 col-6">
                         <label class="form-label small text-muted">Trastes (Guitarra):</label>
                         <select class="form-select form-select-sm" id="tuningFrets">
                             <option value="5" selected>5 Trastes (Estándar)</option>
@@ -103,13 +103,22 @@
                             <option value="3">3 Trastes (Easy)</option>
                         </select>
                     </div>
-                    <div class="col-md-3 col-6">
-                        <label class="form-label small text-muted">Límite de Acordes:</label>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small text-muted">Límite Acordes:</label>
                         <select class="form-select form-select-sm" id="tuningMaxChords">
                             <option value="1">1 Nota (Sin acordes)</option>
                             <option value="2" selected>2 Notas</option>
                             <option value="3">3 Notas</option>
                             <option value="4">4 Notas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small text-muted">Estilo de Digitación:</label>
+                        <select class="form-select form-select-sm" id="tuningStyle">
+                            <option value="balanced" selected>Equilibrado (Estándar)</option>
+                            <option value="melodic">Melódico (Licks / Solos)</option>
+                            <option value="rhythmic">Rítmico (Acordes)</option>
+                            <option value="taps">Taps / HOPO</option>
                         </select>
                     </div>
                     <div class="col-md-2 col-6">
@@ -309,7 +318,7 @@
                     <span class="small text-muted font-monospace" id="timeDisplay">0:00 / 0:00</span>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
                     <label class="small text-muted">Pista:</label>
                     <select class="form-select form-select-sm" id="highwayInstSelect" style="width: auto;">
                         <option value="guitar">Guitarra Líder</option>
@@ -323,12 +332,24 @@
                         <option value="Easy">Easy</option>
                     </select>
 
-                    <label class="small text-muted">Velocidad:</label>
+                    <label class="small text-muted">Scroll:</label>
                     <select class="form-select form-select-sm" id="highwaySpeedSelect" style="width: auto;">
-                        <option value="1.5">Rápida (1.5s)</option>
+                        <option value="1.5">Rápido (1.5s)</option>
                         <option value="2.2" selected>Estándar (2.2s)</option>
-                        <option value="3.0">Lenta (3.0s)</option>
+                        <option value="3.0">Lento (3.0s)</option>
                     </select>
+
+                    <label class="small text-muted">Práctica:</label>
+                    <select class="form-select form-select-sm" id="playbackRateSelect" style="width: auto;">
+                        <option value="0.5">0.5x (Lenta)</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1.0" selected>1.0x (Normal)</option>
+                        <option value="1.25">1.25x</option>
+                    </select>
+
+                    <button class="btn btn-sm btn-outline-warning" id="btnMetronomeToggle" title="Activar metrónomo">
+                        🔔 Metrónomo
+                    </button>
                 </div>
             </div>
         </section>
@@ -502,6 +523,12 @@
                                             <label class="form-check-label small" for="metaFiveLaneDrums">five_lane_drums (Formato GH 5 calles)</label>
                                         </div>
                                     </div>
+                                    <div class="col-md-12">
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="metaGhwtDeReady">
+                                            <label class="form-check-label small" for="metaGhwtDeReady">ghwt_de (Preparar metadatos para Guitar Hero World Tour Definitive Edition)</label>
+                                        </div>
+                                    </div>
                                     <div class="col-md-4">
                                         <label class="form-label small text-muted">parts_vocals_harm:</label>
                                         <select class="form-select form-select-sm" id="metaPartsVocalsHarm">
@@ -626,7 +653,7 @@
             <div class="card-panel">
                 <div class="card-title">Acerca de Chart-Lab</div>
                 <p class="text-muted small">
-                    Chart-Lab es una suite modular para análisis, generación y validación matemática de charts para rhythm games (Clone Hero, YARG, Phase Shift, Moonscraper).
+                    <strong>Chart-Lab</strong> es una suite interactiva creada por <strong>Ey-Liam</strong> para análisis, generación y validación de charts para rhythm games (Clone Hero, YARG, Phase Shift, Moonscraper y GHWT:DE). Diseñada para que jugadores casuales y principiantes puedan crear sus propios charts, experimentar y comprender el funcionamiento técnico de los formatos de ritmo sin barreras complejas.
                 </p>
                 <ul class="text-muted small">
                     <li>Generación multi-instrumento: Lead Guitar (5 frets), GHL Guitar (6 frets), Bass (5 frets), GHL Bass (6 frets), Rhythm (5 & 6 frets), Guitar Coop, Drums / Pro Drums (con platillos 64, 65, 66), 5-Lane Drums, Keys, Pro Keys, Lead Vocals, Vocal Harmonies 1-3, Dance (4 paneles).</li>

@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--artist", default="", help="Song Artist")
     parser.add_argument("--album", default="Album", help="Album Name")
     parser.add_argument("--year", default="2024", help="Release Year")
+    parser.add_argument("--charter", default="Chart-Lab", help="Charter Name (default: Chart-Lab)")
     parser.add_argument("--lyrics", default="", help="Path to lyrics text file")
     parser.add_argument("--out", default="./output", help="Output directory")
 
@@ -156,17 +157,17 @@ parts_vocals_harm = 1
 modchart = 0
 preview_start_time = 30000
 loading_phrase = Charted with Chart-Lab Suite
-charter = Chart-Lab
-charter_guitar = Chart-Lab
-charter_pro_guitar = Chart-Lab
-charter_rhythm = Chart-Lab
-charter_bass = Chart-Lab
-charter_pro_bass = Chart-Lab
-charter_drums = Chart-Lab
-charter_keys = Chart-Lab
-charter_pro_keys = Chart-Lab
-charter_vocals = Chart-Lab
-charter_lower_diff = Chart-Lab
+charter = {args.charter}
+charter_guitar = {args.charter}
+charter_pro_guitar = {args.charter}
+charter_rhythm = {args.charter}
+charter_bass = {args.charter}
+charter_pro_bass = {args.charter}
+charter_drums = {args.charter}
+charter_keys = {args.charter}
+charter_pro_keys = {args.charter}
+charter_vocals = {args.charter}
+charter_lower_diff = {args.charter}
 diff_band = 2
 diff_guitar = 3
 diff_guitarghl = 0
@@ -196,8 +197,9 @@ end_events = 0
 
 ; --- Metadata & Credits ---
 credit_arranged_by = Ey-Liam
-credit_courtesy_of = EFHIII
-credit_other = Ey-Liam & EFHIII
+credit_courtesy_of = Ey-Liam
+credit_other = Ey-Liam
+; Concept inspiration: EFHIII & rhythm gaming community
 """)
 
     print(f"\n[+] Success! Ready-to-play song exported to:\n    {out_dir}")
