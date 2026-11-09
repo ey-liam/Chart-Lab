@@ -147,6 +147,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (targetTab === 'tab-highway') {
                 state.highway.resize();
+            } else if (targetTab === 'tab-audio') {
+                redrawAudioWaveform();
+            } else if (targetTab === 'tab-lyrics') {
+                redrawVocalRoll();
             }
         });
     });
@@ -734,9 +738,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Audio Waveform & Vocal Roll Render Loop
     function redrawAudioWaveform() {
         const canvas = document.getElementById('audioWaveformCanvas');
-        if (!canvas) return;
-        if (canvas.width !== canvas.clientWidth) {
-            canvas.width = canvas.clientWidth || 800;
+        if (!canvas || canvas.offsetParent === null) return;
+        if (canvas.clientWidth > 0 && canvas.width !== canvas.clientWidth) {
+            canvas.width = canvas.clientWidth;
         }
         const cur = state.audioEngine.getCurrentTime();
         state.audioEngine.drawWaveform(canvas, state.midiData, state.metadata.offsetMs, cur);
@@ -744,9 +748,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function redrawVocalRoll() {
         const canvas = document.getElementById('vocalRollCanvas');
-        if (!canvas || !state.midiData) return;
-        if (canvas.width !== canvas.clientWidth) {
-            canvas.width = canvas.clientWidth || 800;
+        if (!canvas || !state.midiData || canvas.offsetParent === null) return;
+        if (canvas.clientWidth > 0 && canvas.width !== canvas.clientWidth) {
+            canvas.width = canvas.clientWidth;
         }
         const ctx = canvas.getContext('2d');
         const w = canvas.width;
