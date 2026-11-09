@@ -21,7 +21,7 @@
         <div class="header-badges">
             <span class="badge badge-notes" id="midiFileName">Sin archivo MIDI</span>
             <span class="badge badge-success" id="lyricsStatusBadge">Letras: En espera</span>
-            <span class="badge badge-warning" id="auditBadge">Audit: 0 errores</span>
+            <span class="badge badge-warning" id="auditBadge">Audit: 0 advertencias</span>
         </div>
     </header>
 
@@ -48,7 +48,7 @@
     </nav>
 
     <!-- Main Container -->
-    <main class="main-container">
+    <main class="app-content container-fluid">
 
         <!-- TAB 1: PISTAS & INSTRUMENTOS -->
         <section id="tab-tracks" class="tab-pane active">
@@ -56,7 +56,7 @@
             <div class="drop-zone" id="midiDropZone">
                 <input type="file" id="midiFileInput" accept=".mid,.midi,audio/midi">
                 <div class="drop-zone-text">Seleccionar o arrastrar archivo MIDI (.mid / .midi)</div>
-                <div class="drop-zone-sub">Compatible con formatos Type 0 y Type 1</div>
+                <div class="drop-zone-sub">Compatible con formatos Type 0 y Type 1 (General MIDI)</div>
             </div>
 
             <!-- Track Routing Panel -->
@@ -95,9 +95,9 @@
                 </div>
                 <div class="row g-3">
                     <div class="col-md-3 col-6">
-                        <label class="form-label small text-muted">Trastes:</label>
+                        <label class="form-label small text-muted">Trastes (Guitarra):</label>
                         <select class="form-select form-select-sm" id="tuningFrets">
-                            <option value="5" selected>5 Trastes (Expert / Hard)</option>
+                            <option value="5" selected>5 Trastes (Estándar)</option>
                             <option value="4">4 Trastes (Medium)</option>
                             <option value="3">3 Trastes (Easy)</option>
                         </select>
@@ -171,16 +171,16 @@
                             <table class="table-dark-custom">
                                 <thead>
                                     <tr>
-                                        <th>#</th>
+                                        <th>Tick</th>
                                         <th>Tiempo</th>
-                                        <th>Nota</th>
-                                        <th>Evento</th>
+                                        <th>Tipo</th>
+                                        <th>Texto</th>
                                     </tr>
                                 </thead>
-                                <tbody id="lyricsPreviewBody">
+                                <tbody id="lyricsEventsBody">
                                     <tr>
                                         <td colspan="4" class="text-center text-muted py-4">
-                                            Sin eventos líricos cargados.
+                                            No se han generado eventos líricos aún.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -194,25 +194,27 @@
         <!-- TAB 3: AUDIO & SINCRONIZACIÓN -->
         <section id="tab-audio" class="tab-pane">
             <div class="card-panel">
-                <div class="card-title">
-                    <span>Desfase de Audio (Audio Offset)</span>
-                    <span class="badge badge-notes" id="offsetDisplay">0 ms</span>
+                <div class="card-title">Gestión de Audio y Canales Stems</div>
+                <p class="text-muted small">
+                    Cargue la pista maestra o los stems separados (Guitar, Bass, Drums, Keys, Vocals).
+                </p>
+
+                <!-- Global Offset -->
+                <div class="row g-3 align-items-center mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Desfase Global (Offset en ms):</label>
+                        <input type="number" class="form-control" id="audioOffsetMs" value="0" step="10">
+                    </div>
+                    <div class="col-md-9 text-muted small pt-3">
+                        Compensa la latencia entre el tiempo cero del audio y el primer tick del MIDI.
+                    </div>
                 </div>
 
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <button class="btn btn-sm btn-outline-secondary" id="btnNudgeOffsetMinus">-25 ms</button>
-                    <input type="range" class="form-range flex-grow-1" id="audioOffsetInput" min="-500" max="1500" value="0" step="5">
-                    <button class="btn btn-sm btn-outline-secondary" id="btnNudgeOffsetPlus">+25 ms</button>
-                </div>
-            </div>
-
-            <div class="card-panel">
-                <div class="card-title">Archivos de Audio y Stems</div>
-
-                <div class="stems-grid">
-                    <div class="stem-card">
-                        <div class="stem-card-header">
-                            <span>Canción Completa / Backing</span>
+                <!-- Stems Upload & Mixers -->
+                <div class="row g-3">
+                    <div class="col-md-4 stem-card">
+                        <div class="stem-header">
+                            <span>Canción Completa (song.ogg)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_song">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_song">Solo</button>
@@ -222,8 +224,8 @@
                         <small class="text-muted" id="stemName_song">Sin archivo</small>
                     </div>
 
-                    <div class="stem-card">
-                        <div class="stem-card-header">
+                    <div class="col-md-4 stem-card">
+                        <div class="stem-header">
                             <span>Guitarra (Guitar.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_guitar">Mute</button>
@@ -234,8 +236,8 @@
                         <small class="text-muted" id="stemName_guitar">Sin archivo</small>
                     </div>
 
-                    <div class="stem-card">
-                        <div class="stem-card-header">
+                    <div class="col-md-4 stem-card">
+                        <div class="stem-header">
                             <span>Bajo (Bass.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_bass">Mute</button>
@@ -246,8 +248,8 @@
                         <small class="text-muted" id="stemName_bass">Sin archivo</small>
                     </div>
 
-                    <div class="stem-card">
-                        <div class="stem-card-header">
+                    <div class="col-md-4 stem-card">
+                        <div class="stem-header">
                             <span>Batería (Drums.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_drums">Mute</button>
@@ -258,8 +260,8 @@
                         <small class="text-muted" id="stemName_drums">Sin archivo</small>
                     </div>
 
-                    <div class="stem-card">
-                        <div class="stem-card-header">
+                    <div class="col-md-4 stem-card">
+                        <div class="stem-header">
                             <span>Voz (Vocals.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_vocals">Mute</button>
@@ -270,8 +272,8 @@
                         <small class="text-muted" id="stemName_vocals">Sin archivo</small>
                     </div>
 
-                    <div class="stem-card">
-                        <div class="stem-card-header">
+                    <div class="col-md-4 stem-card">
+                        <div class="stem-header">
                             <span>Teclado (Keys.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_keys">Mute</button>
@@ -305,7 +307,7 @@
                 <div class="d-flex align-items-center gap-2">
                     <label class="small text-muted">Pista:</label>
                     <select class="form-select form-select-sm" id="highwayInstSelect" style="width: auto;">
-                        <option value="guitar">Guitarra</option>
+                        <option value="guitar">Guitarra Líder</option>
                     </select>
 
                     <label class="small text-muted">Dificultad:</label>
@@ -318,76 +320,278 @@
 
                     <label class="small text-muted">Velocidad:</label>
                     <select class="form-select form-select-sm" id="highwaySpeedSelect" style="width: auto;">
-                        <option value="0.5">0.5x</option>
-                        <option value="0.75">0.75x</option>
-                        <option value="1.0" selected>1.0x</option>
-                        <option value="1.25">1.25x</option>
+                        <option value="1.5">Rápida (1.5s)</option>
+                        <option value="2.2" selected>Estándar (2.2s)</option>
+                        <option value="3.0">Lenta (3.0s)</option>
                     </select>
                 </div>
-            </div>
-            <div class="mt-2 text-muted small text-center">
-                Atajo: <kbd>Barra Espaciadora</kbd> para reproducir / pausar.
             </div>
         </section>
 
         <!-- TAB 5: METADATOS & EXPORTAR -->
         <section id="tab-export" class="tab-pane">
             <div class="row">
-                <div class="col-lg-7">
+                <div class="col-lg-8">
                     <div class="card-panel">
-                        <div class="card-title">Metadatos de la Canción (song.ini)</div>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label small text-muted">Título:</label>
-                                <input type="text" class="form-control" id="metaName" value="Song Title">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label small text-muted">Artista:</label>
-                                <input type="text" class="form-control" id="metaArtist" value="Artist">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label small text-muted">Álbum:</label>
-                                <input type="text" class="form-control" id="metaAlbum" value="Album">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Año:</label>
-                                <input type="text" class="form-control" id="metaYear" value="2024">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label small text-muted">Género:</label>
-                                <input type="text" class="form-control" id="metaGenre" value="Rock">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small text-muted">Charter:</label>
-                                <input type="text" class="form-control" id="metaCharter" value="Chart-Lab">
-                            </div>
-                        </div>
+                        <!-- Sub-tabs for metadata categories -->
+                        <ul class="nav nav-tabs border-secondary mb-3" id="metaSubTabs" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active text-light" id="subtab-general-btn" data-bs-toggle="tab" data-bs-target="#subtab-general" type="button">General</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link text-light" id="subtab-diffs-btn" data-bs-toggle="tab" data-bs-target="#subtab-diffs" type="button">Dificultades</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link text-light" id="subtab-engine-btn" data-bs-toggle="tab" data-bs-target="#subtab-engine" type="button">Motor / Juego</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link text-light" id="subtab-credits-btn" data-bs-toggle="tab" data-bs-target="#subtab-credits" type="button">Créditos</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link text-light" id="subtab-links-btn" data-bs-toggle="tab" data-bs-target="#subtab-links" type="button">Enlaces</button>
+                            </li>
+                        </ul>
 
-                        <hr class="my-4 border-secondary">
+                        <div class="tab-content" id="metaSubTabsContent">
+                            <!-- Subtab: General -->
+                            <div class="tab-pane fade show active" id="subtab-general">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Título (name):</label>
+                                        <input type="text" class="form-control" id="metaName" value="Song Title">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Artista (artist):</label>
+                                        <input type="text" class="form-control" id="metaArtist" value="Artist">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Álbum (album):</label>
+                                        <input type="text" class="form-control" id="metaAlbum" value="Album">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">Pista # (album_track):</label>
+                                        <input type="number" class="form-control" id="metaAlbumTrack" value="1">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">Año (year):</label>
+                                        <input type="text" class="form-control" id="metaYear" value="2024">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Género (genre):</label>
+                                        <input type="text" class="form-control" id="metaGenre" value="Rock">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Subgénero (sub_genre):</label>
+                                        <input type="text" class="form-control" id="metaSubGenre" value="Alternative">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">Etiquetas (tags):</label>
+                                        <input type="text" class="form-control" id="metaTags" value="">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Charter Principal (charter):</label>
+                                        <input type="text" class="form-control" id="metaCharter" value="Chart-Lab">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">Rating (rating):</label>
+                                        <input type="number" class="form-control" id="metaRating" min="0" max="5" value="1">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">Icono (icon):</label>
+                                        <input type="text" class="form-control" id="metaIcon" value="chartlab">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Playlist (playlist):</label>
+                                        <input type="text" class="form-control" id="metaPlaylist" value="">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">Ubicación (location):</label>
+                                        <input type="text" class="form-control" id="metaLocation" value="">
+                                    </div>
+                                </div>
+                            </div>
 
-                        <div class="card-title">Dificultades Numéricas (song.ini)</div>
-                        <div class="row g-3">
-                            <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">diff_guitar:</label>
-                                <input type="number" class="form-control" id="metaDiffGuitar" min="0" max="6" value="3">
+                            <!-- Subtab: Difficulties -->
+                            <div class="tab-pane fade" id="subtab-diffs">
+                                <p class="text-muted small mb-3">Valores enteros normalizados (0 = No disponible, 1-6 = Rango de dificultad).</p>
+                                <div class="row g-2">
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_band:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffBand" min="0" max="6" value="2">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_guitar:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffGuitar" min="0" max="6" value="3">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_guitarghl:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffGuitarGhl" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_guitar_coop:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffGuitarCoop" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_bass:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffBass" min="0" max="6" value="2">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_bassghl:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffBassGhl" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_rhythm:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffRhythm" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_rhythm_ghl:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffRhythmGhl" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_drums:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffDrums" min="0" max="6" value="3">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_drums_real:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffDrumsReal" min="0" max="6" value="3">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_elite_drums:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffEliteDrums" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_keys:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffKeys" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_keys_real:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffKeysReal" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_vocals:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffVocals" min="0" max="6" value="3">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_vocals_harm:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffVocalsHarm" min="0" max="6" value="0">
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label class="form-label small text-muted">diff_dance:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaDiffDance" min="0" max="6" value="0">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">diff_bass:</label>
-                                <input type="number" class="form-control" id="metaDiffBass" min="0" max="6" value="2">
+
+                            <!-- Subtab: Engine / Gameplay -->
+                            <div class="tab-pane fade" id="subtab-engine">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="metaProDrums" checked>
+                                            <label class="form-check-label small" for="metaProDrums">pro_drums (Platillos Pro)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="metaFiveLaneDrums">
+                                            <label class="form-check-label small" for="metaFiveLaneDrums">five_lane_drums (Formato GH 5 calles)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">parts_vocals_harm:</label>
+                                        <select class="form-select form-select-sm" id="metaPartsVocalsHarm">
+                                            <option value="1" selected>1 (Solista)</option>
+                                            <option value="2">2 (Dúo / Harm 2)</option>
+                                            <option value="3">3 (Trío / Harm 3)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">vocal_scroll_speed:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaVocalScrollSpeed" value="100">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small text-muted">modchart:</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaModchart" value="0">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">video_start_time (ms):</label>
+                                        <input type="number" class="form-control form-control-sm" id="metaVideoStartTime" value="0">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">loading_phrase:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaLoadingPhrase" value="Charted with Chart-Lab Suite">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">diff_drums:</label>
-                                <input type="number" class="form-control" id="metaDiffDrums" min="0" max="6" value="3">
+
+                            <!-- Subtab: Credits -->
+                            <div class="tab-pane fade" id="subtab-credits">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">credit_composed_by:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaCreditComposedBy">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">credit_produced_by:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaCreditProducedBy">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">credit_mixed_by:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaCreditMixedBy">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">credit_mastered_by:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaCreditMasteredBy">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">credit_engineered_by:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaCreditEngineeredBy">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">credit_album_art_by:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaCreditAlbumArtBy">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small text-muted">credit_license:</label>
+                                        <input type="text" class="form-control form-control-sm" id="metaCreditLicense">
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">diff_keys:</label>
-                                <input type="number" class="form-control" id="metaDiffKeys" min="0" max="6" value="3">
+
+                            <!-- Subtab: Social / Community Links -->
+                            <div class="tab-pane fade" id="subtab-links">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">link_spotify:</label>
+                                        <input type="url" class="form-control form-control-sm" id="metaLinkSpotify" placeholder="https://open.spotify.com/track/...">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">link_youtube:</label>
+                                        <input type="url" class="form-control form-control-sm" id="metaLinkYoutube" placeholder="https://youtube.com/watch?v=...">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">link_bandcamp:</label>
+                                        <input type="url" class="form-control form-control-sm" id="metaLinkBandcamp">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">link_soundcloud:</label>
+                                        <input type="url" class="form-control form-control-sm" id="metaLinkSoundcloud">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">link_twitter:</label>
+                                        <input type="url" class="form-control form-control-sm" id="metaLinkTwitter">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small text-muted">link_instagram:</label>
+                                        <input type="url" class="form-control form-control-sm" id="metaLinkInstagram">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-5">
+                <div class="col-lg-4">
                     <div class="card-panel text-center">
                         <div class="card-title text-center">Portada (album.png)</div>
                         <div class="my-3">
@@ -417,13 +621,14 @@
             <div class="card-panel">
                 <div class="card-title">Acerca de Chart-Lab</div>
                 <p class="text-muted small">
-                    Chart-Lab es una suite modular para análisis, generación y validación matemática de charts para rhythm games.
+                    Chart-Lab es una suite modular para análisis, generación y validación matemática de charts para rhythm games (Clone Hero, YARG, Phase Shift, Moonscraper).
                 </p>
                 <ul class="text-muted small">
-                    <li>Generación multi-instrumento: Lead, Bass, Drums, Keys, Rhythm, Vocals.</li>
+                    <li>Generación multi-instrumento: Lead Guitar (5 frets), GHL Guitar (6 frets), Bass (5 frets), GHL Bass (6 frets), Rhythm (5 & 6 frets), Guitar Coop, Drums / Pro Drums (con platillos 64, 65, 66), 5-Lane Drums, Keys, Pro Keys, Lead Vocals, Vocal Harmonies 1-3, Dance (4 paneles).</li>
                     <li>Soporte de cuatro niveles de dificultad: Expert, Hard, Medium, Easy.</li>
-                    <li>Alineación fonética de texto a notas vocales.</li>
+                    <li>Alineación fonética de texto a notas vocales con marcadores de frase.</li>
                     <li>Validación de colisiones temporales y recorte automático de sustains.</li>
+                    <li>Exportación completa según el estándar de YARG (song.ini con dificultades enteras, opciones de motor, créditos extendidos y enlaces comunitarios).</li>
                 </ul>
             </div>
         </section>
@@ -456,7 +661,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="vendor/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="js/core/midi-parser.js"></script>
     <script src="js/core/charter-engine.js"></script>
     <script src="js/core/lyrics-aligner.js"></script>
