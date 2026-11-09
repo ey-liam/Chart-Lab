@@ -1,5 +1,5 @@
 /**
- * MIDI-CH Studio Pro - Advanced Lyrics & Sections Engine
+ * Chart-Lab - Lyrics & Vocal Syllable Aligner
  * Handles:
  * 1. Automatic extraction of embedded MIDI lyrics / text events.
  * 2. Syllable splitting and sequential auto-alignment to vocal melody notes.

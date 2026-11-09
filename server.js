@@ -1,7 +1,7 @@
 /**
- * MIDI-CH Studio Pro - Local Development & Web Server
+ * Chart-Lab - Local Development & Web Server
  * Zero dependencies: uses native Node.js http and fs modules.
- * Automatically opens in your default browser.
+ * Serves the web/ directory and opens in default browser.
  */
 
 const http = require('http');
@@ -10,7 +10,7 @@ const path = require('path');
 const { exec } = require('child_process');
 
 const PORT = process.env.PORT || 3000;
-const ROOT_DIR = __dirname;
+const WEB_DIR = path.join(__dirname, 'web');
 
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
@@ -30,10 +30,10 @@ const server = http.createServer((req, res) => {
     let reqUrl = decodeURI(req.url.split('?')[0]);
     if (reqUrl === '/') reqUrl = '/index.html';
 
-    const filePath = path.join(ROOT_DIR, reqUrl);
+    const filePath = path.join(WEB_DIR, reqUrl);
 
     // Prevent directory traversal
-    if (!filePath.startsWith(ROOT_DIR)) {
+    if (!filePath.startsWith(WEB_DIR)) {
         res.writeHead(403);
         res.end('Acceso denegado');
         return;
@@ -57,10 +57,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
     const url = `http://localhost:${PORT}`;
-    console.log(`=======================================================`);
-    console.log(`  🎸 MIDI-CH Studio Pro ejecutándose en:`);
-    console.log(`  👉 ${url}`);
-    console.log(`=======================================================`);
+    console.log(`Chart-Lab Server activo en: ${url}`);
 
     // Open default browser on Windows
     exec(`start ${url}`);

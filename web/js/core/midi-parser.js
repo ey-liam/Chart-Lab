@@ -1,5 +1,5 @@
 /**
- * MIDI-CH Studio Pro - High Performance Binary MIDI Parser
+ * Chart-Lab - Binary MIDI Parser
  * Supports Format 0 & 1, running status, meta events, tempos, time signatures & lyrics.
  * Dual environment: works in Browser and Node.js.
  */

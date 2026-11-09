@@ -1,5 +1,5 @@
 /**
- * MIDI-CH Studio Pro - Main Application Controller
+ * Chart-Lab - Main Application Controller
  * Coordinates UI tabs, file parsing, track routing, lyrics alignment,
  * interactive highway visualizer, audio playback, and package export.
  */
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Pistas auto-asignadas con éxito', 'success');
     });
 
-    // Chart Algorithm Tuning Handlers (EFHIII style adjustments)
+    // Chart Algorithm Tuning Handlers
     const tuningFrets = document.getElementById('tuningFrets');
     const tuningMaxChords = document.getElementById('tuningMaxChords');
     const tuningMinSustain = document.getElementById('tuningMinSustain');

@@ -1,5 +1,5 @@
 /**
- * MIDI-CH Studio Pro - Web Audio Engine & Stems Manager
+ * Chart-Lab - Web Audio Engine & Stems Manager
  * Supports:
  * 1. Single audio file or multi-stem playback (guitar, bass, drums, vocals, song).
  * 2. Real-time millisecond offset compensation.

@@ -1,5 +1,5 @@
 /**
- * MIDI-CH Studio Pro - Advanced Multi-Instrument & Multi-Difficulty Charter Engine
+ * Chart-Lab - Multi-Instrument & Multi-Difficulty Charter Engine
  * Maps MIDI note data into playable Clone Hero / YARG charts for:
  * Lead Guitar, Bass Guitar, Rhythm Guitar, Keys, and 4-Lane / Pro Drums.
  */

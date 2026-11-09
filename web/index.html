@@ -15,11 +15,11 @@
             <div class="logo-badge">CHART-LAB</div>
             <div>
                 <div class="logo-title">Chart-Lab Studio</div>
-                <div class="logo-subtitle">Suite Profesional Multi-Instrumento (Inspirada en EFHIII midi-ch & uwuHero)</div>
+                <div class="logo-subtitle">Suite de edición y validación multi-instrumento</div>
             </div>
         </div>
         <div class="header-badges">
-            <span class="badge badge-notes" id="midiFileName">Ningún archivo MIDI cargado</span>
+            <span class="badge badge-notes" id="midiFileName">Sin archivo MIDI</span>
             <span class="badge badge-success" id="lyricsStatusBadge">Letras: En espera</span>
             <span class="badge badge-warning" id="auditBadge">Audit: 0 errores</span>
         </div>
@@ -28,22 +28,22 @@
     <!-- Navigation Tabs -->
     <nav class="app-nav">
         <button class="nav-tab active" data-tab="tab-tracks">
-            <span>🎛️</span> Pistas & Instrumentos
+            Pistas e Instrumentos
         </button>
         <button class="nav-tab" data-tab="tab-lyrics">
-            <span>🎤</span> Letras & Secciones
+            Letras y Secciones
         </button>
         <button class="nav-tab" data-tab="tab-audio">
-            <span>🎧</span> Audio & Sincronización
+            Audio y Sincronización
         </button>
         <button class="nav-tab" data-tab="tab-highway">
-            <span>🎮</span> Highway 3D & Simulador
+            Visualizador 3D
         </button>
         <button class="nav-tab" data-tab="tab-export">
-            <span>📦</span> Metadatos & Exportar (.ZIP)
+            Metadatos y Exportación
         </button>
         <button class="nav-tab" data-tab="tab-about">
-            <span>ℹ️</span> Arquitectura & Créditos
+            Información
         </button>
     </nav>
 
@@ -55,37 +55,32 @@
             <!-- MIDI File Drop Zone -->
             <div class="drop-zone" id="midiDropZone">
                 <input type="file" id="midiFileInput" accept=".mid,.midi,audio/midi">
-                <div class="drop-zone-icon">⚡</div>
-                <div class="drop-zone-text">Arrastra y suelta tu archivo MIDI aquí</div>
-                <div class="drop-zone-sub">o haz clic para explorar en tu equipo (.mid / .midi)</div>
+                <div class="drop-zone-text">Seleccionar o arrastrar archivo MIDI (.mid / .midi)</div>
+                <div class="drop-zone-sub">Compatible con formatos Type 0 y Type 1</div>
             </div>
 
             <!-- Track Routing Panel -->
             <div class="card-panel">
                 <div class="card-title">
-                    <span>Asignación de Pistas a Instrumentos del Juego</span>
-                    <button class="btn btn-sm btn-outline-info" id="btnAutoAssign">✨ Auto-Asignar Inteligente</button>
+                    <span>Enrutamiento de Pistas MIDI</span>
+                    <button class="btn btn-sm btn-outline-info" id="btnAutoAssign">Auto-Asignar</button>
                 </div>
-                <p class="text-muted small">
-                    Asigna cada pista de tu archivo MIDI al instrumento correspondiente de Clone Hero / YARG.
-                    Puedes fusionar múltiples pistas en un mismo instrumento (ej. piano de dos manos en Teclado).
-                </p>
 
                 <div class="table-responsive">
                     <table class="table-dark-custom">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>Nombre / Instrumento MIDI</th>
+                                <th>ID</th>
+                                <th>Pista / Instrumento</th>
                                 <th>Notas</th>
                                 <th>Rango</th>
-                                <th>Instrumento Asignado</th>
+                                <th>Asignación</th>
                             </tr>
                         </thead>
                         <tbody id="trackRoutingBody">
                             <tr>
                                 <td colspan="5" class="text-center text-muted py-4">
-                                    Carga un archivo MIDI arriba para ver y configurar las pistas.
+                                    Cargue un archivo MIDI para visualizar las pistas disponibles.
                                 </td>
                             </tr>
                         </tbody>
@@ -93,40 +88,39 @@
                 </div>
             </div>
 
-            <!-- Chart Tuning Parameters (Estilo EFHIII Original & Avanzado) -->
+            <!-- Chart Tuning Parameters -->
             <div class="card-panel">
                 <div class="card-title">
-                    <span>Ajustes del Algoritmo de Charting</span>
-                    <span class="badge badge-notes">Personalización Avanzada</span>
+                    <span>Parámetros de Generación</span>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-3 col-6">
-                        <label class="form-label small text-muted">Trastes (Frets):</label>
+                        <label class="form-label small text-muted">Trastes:</label>
                         <select class="form-select form-select-sm" id="tuningFrets">
-                            <option value="5" selected>5 Trastes (Estándar Expert/Hard)</option>
+                            <option value="5" selected>5 Trastes (Expert / Hard)</option>
                             <option value="4">4 Trastes (Medium)</option>
                             <option value="3">3 Trastes (Easy)</option>
                         </select>
                     </div>
                     <div class="col-md-3 col-6">
-                        <label class="form-label small text-muted">Máx. Notas Simultáneas (Acordes):</label>
+                        <label class="form-label small text-muted">Límite de Acordes:</label>
                         <select class="form-select form-select-sm" id="tuningMaxChords">
-                            <option value="1">1 (Solo notas individuales)</option>
-                            <option value="2" selected>2 (Acordes de 2 notas)</option>
-                            <option value="3">3 (Acordes de hasta 3 notas)</option>
-                            <option value="4">4 (Acordes densos)</option>
+                            <option value="1">1 Nota (Sin acordes)</option>
+                            <option value="2" selected>2 Notas</option>
+                            <option value="3">3 Notas</option>
+                            <option value="4">4 Notas</option>
                         </select>
                     </div>
                     <div class="col-md-3 col-6">
-                        <label class="form-label small text-muted">Sustain Mínimo (en compás):</label>
+                        <label class="form-label small text-muted">Umbral de Sustain:</label>
                         <select class="form-select form-select-sm" id="tuningMinSustain">
-                            <option value="0.25">1/16 de compás (Sustains cortos)</option>
-                            <option value="0.5" selected>1/8 de compás (Estándar)</option>
-                            <option value="1.0">1/4 de compás (Solo notas largas)</option>
+                            <option value="0.25">1/16 compás</option>
+                            <option value="0.5" selected>1/8 compás (Estándar)</option>
+                            <option value="1.0">1/4 compás</option>
                         </select>
                     </div>
                     <div class="col-md-3 col-6">
-                        <label class="form-label small text-muted">Notas Abiertas (Open Notes):</label>
+                        <label class="form-label small text-muted">Notas Abiertas:</label>
                         <div class="form-check form-switch mt-2">
                             <input class="form-check-input" type="checkbox" id="tuningOpenNotes" checked>
                             <label class="form-check-label small" for="tuningOpenNotes">Habilitar en Bajo</label>
@@ -141,45 +135,37 @@
             <div class="row">
                 <div class="col-lg-6">
                     <div class="card-panel">
-                        <div class="card-title">Alineador Fonético de Letras</div>
-                        <p class="text-muted small">
-                            Pega la letra de la canción (de Genius, Google, etc.). El sistema separará automáticamente las sílabas
-                            y las anclará secuencialmente a las notas de la pista vocal seleccionada.
-                        </p>
+                        <div class="card-title">Alineación de Letras</div>
 
                         <div class="mb-3">
                             <label class="form-label small text-muted">Pista Vocal de Referencia:</label>
                             <select class="form-select" id="vocalTrackSelect">
-                                <option value="">(Carga un MIDI primero)</option>
+                                <option value="">Seleccione pista...</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label small text-muted">Modo de División:</label>
                             <select class="form-select" id="lyricsModeSelect">
-                                <option value="syllables" selected>Auto-dividir en Sílabas fonéticas (Recomendado)</option>
-                                <option value="words">Palabra completa por nota</option>
+                                <option value="syllables" selected>División en Sílabas</option>
+                                <option value="words">Palabras Completas</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Letra de la Canción:</label>
-                            <textarea class="form-control" id="lyricsTextInput" rows="8" placeholder="Pega la letra aquí...
-Ejemplo:
-They all said that it would change
-Twenty-something's going to be so great..."></textarea>
+                            <label class="form-label small text-muted">Texto de la Letra:</label>
+                            <textarea class="form-control" id="lyricsTextInput" rows="8" placeholder="Ingrese la letra aquí..."></textarea>
                         </div>
 
                         <button class="btn btn-primary-glow w-100" id="btnAlignLyrics">
-                            ⚡ Sincronizar Sílabas a Notas Vocales
+                            Sincronizar Sílabas
                         </button>
                     </div>
                 </div>
 
                 <div class="col-lg-6">
                     <div class="card-panel">
-                        <div class="card-title">Vista Previa de Letras Sincronizadas</div>
-                        <p class="text-muted small">Listado de eventos líricos alineados para el <code>[Events]</code> del chart:</p>
+                        <div class="card-title">Eventos Líricos Generados</div>
 
                         <div style="max-height: 400px; overflow-y: auto;">
                             <table class="table-dark-custom">
@@ -188,13 +174,13 @@ Twenty-something's going to be so great..."></textarea>
                                         <th>#</th>
                                         <th>Tiempo</th>
                                         <th>Nota</th>
-                                        <th>Sílaba / Evento</th>
+                                        <th>Evento</th>
                                     </tr>
                                 </thead>
                                 <tbody id="lyricsPreviewBody">
                                     <tr>
                                         <td colspan="4" class="text-center text-muted py-4">
-                                            Alinea una letra o extrae las letras del MIDI para previsualizarlas.
+                                            Sin eventos líricos cargados.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -209,12 +195,9 @@ Twenty-something's going to be so great..."></textarea>
         <section id="tab-audio" class="tab-pane">
             <div class="card-panel">
                 <div class="card-title">
-                    <span>Sincronización y Desfase de Audio (Audio Offset)</span>
+                    <span>Desfase de Audio (Audio Offset)</span>
                     <span class="badge badge-notes" id="offsetDisplay">0 ms</span>
                 </div>
-                <p class="text-muted small">
-                    Ajusta el desfase en milisegundos para sincronizar el audio con las notas de la carretera.
-                </p>
 
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <button class="btn btn-sm btn-outline-secondary" id="btnNudgeOffsetMinus">-25 ms</button>
@@ -224,88 +207,85 @@ Twenty-something's going to be so great..."></textarea>
             </div>
 
             <div class="card-panel">
-                <div class="card-title">Carga de Canción Normal o Stems Separados</div>
-                <p class="text-muted small">
-                    Puedes cargar un único archivo de audio o pistas separadas por instrumento. Se incluirán en el ZIP final.
-                </p>
+                <div class="card-title">Archivos de Audio y Stems</div>
 
                 <div class="stems-grid">
                     <div class="stem-card">
                         <div class="stem-card-header">
-                            <span>🎵 Canción Completa / Backing</span>
+                            <span>Canción Completa / Backing</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_song">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_song">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_song" accept="audio/*">
-                        <small class="text-muted" id="stemName_song">Sin archivo cargado</small>
+                        <small class="text-muted" id="stemName_song">Sin archivo</small>
                     </div>
 
                     <div class="stem-card">
                         <div class="stem-card-header">
-                            <span>🎸 Pista de Guitarra (guitar.ogg)</span>
+                            <span>Guitarra (Guitar.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_guitar">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_guitar">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_guitar" accept="audio/*">
-                        <small class="text-muted" id="stemName_guitar">Sin archivo cargado</small>
+                        <small class="text-muted" id="stemName_guitar">Sin archivo</small>
                     </div>
 
                     <div class="stem-card">
                         <div class="stem-card-header">
-                            <span>🎸 Pista de Bajo (bass.ogg)</span>
+                            <span>Bajo (Bass.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_bass">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_bass">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_bass" accept="audio/*">
-                        <small class="text-muted" id="stemName_bass">Sin archivo cargado</small>
+                        <small class="text-muted" id="stemName_bass">Sin archivo</small>
                     </div>
 
                     <div class="stem-card">
                         <div class="stem-card-header">
-                            <span>🥁 Pista de Batería (drums.ogg)</span>
+                            <span>Batería (Drums.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_drums">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_drums">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_drums" accept="audio/*">
-                        <small class="text-muted" id="stemName_drums">Sin archivo cargado</small>
+                        <small class="text-muted" id="stemName_drums">Sin archivo</small>
                     </div>
 
                     <div class="stem-card">
                         <div class="stem-card-header">
-                            <span>🎤 Pista de Voz (vocals.ogg)</span>
+                            <span>Voz (Vocals.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_vocals">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_vocals">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_vocals" accept="audio/*">
-                        <small class="text-muted" id="stemName_vocals">Sin archivo cargado</small>
+                        <small class="text-muted" id="stemName_vocals">Sin archivo</small>
                     </div>
 
                     <div class="stem-card">
                         <div class="stem-card-header">
-                            <span>🎹 Pista de Teclado (keys.ogg)</span>
+                            <span>Teclado (Keys.wav)</span>
                             <div class="stem-actions">
                                 <button class="btn-toggle" id="stemMute_keys">Mute</button>
                                 <button class="btn-toggle solo" id="stemSolo_keys">Solo</button>
                             </div>
                         </div>
                         <input type="file" class="form-control form-control-sm" id="stemFile_keys" accept="audio/*">
-                        <small class="text-muted" id="stemName_keys">Sin archivo cargado</small>
+                        <small class="text-muted" id="stemName_keys">Sin archivo</small>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 4: VISTA PREVIA (HIGHWAY 3D & SIMULADOR) -->
+        <!-- TAB 4: VISUALIZADOR 3D -->
         <section id="tab-highway" class="tab-pane">
             <div class="highway-wrapper">
                 <canvas id="highwayCanvas"></canvas>
@@ -314,7 +294,7 @@ Twenty-something's going to be so great..."></textarea>
             <!-- Player Bar -->
             <div class="player-bar">
                 <div class="player-controls">
-                    <button class="btn btn-success" id="btnPlayPause">▶ Reproducir</button>
+                    <button class="btn btn-success" id="btnPlayPause">Reproducir</button>
                 </div>
 
                 <div class="scrubber-container">
@@ -323,9 +303,9 @@ Twenty-something's going to be so great..."></textarea>
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <label class="small text-muted">Instrumento:</label>
+                    <label class="small text-muted">Pista:</label>
                     <select class="form-select form-select-sm" id="highwayInstSelect" style="width: auto;">
-                        <option value="guitar">🎸 Guitarra Líder</option>
+                        <option value="guitar">Guitarra</option>
                     </select>
 
                     <label class="small text-muted">Dificultad:</label>
@@ -346,7 +326,7 @@ Twenty-something's going to be so great..."></textarea>
                 </div>
             </div>
             <div class="mt-2 text-muted small text-center">
-                Atajo de teclado: Presiona <kbd>Barra Espaciadora</kbd> para reproducir / pausar en cualquier momento.
+                Atajo: <kbd>Barra Espaciadora</kbd> para reproducir / pausar.
             </div>
         </section>
 
@@ -358,7 +338,7 @@ Twenty-something's going to be so great..."></textarea>
                         <div class="card-title">Metadatos de la Canción (song.ini)</div>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label small text-muted">Título de la Canción:</label>
+                                <label class="form-label small text-muted">Título:</label>
                                 <input type="text" class="form-control" id="metaName" value="Song Title">
                             </div>
                             <div class="col-md-6">
@@ -378,87 +358,72 @@ Twenty-something's going to be so great..."></textarea>
                                 <input type="text" class="form-control" id="metaGenre" value="Rock">
                             </div>
                             <div class="col-12">
-                                <label class="form-label small text-muted">Charter (Autor del chart):</label>
+                                <label class="form-label small text-muted">Charter:</label>
                                 <input type="text" class="form-control" id="metaCharter" value="Chart-Lab">
                             </div>
                         </div>
 
                         <hr class="my-4 border-secondary">
 
-                        <div class="card-title">Dificultades (1, 2, 3...) - Estándar YARG & Clone Hero</div>
-                        <p class="text-muted small">Medidas numéricas limpias que se escriben directamente en el <code>song.ini</code>:</p>
+                        <div class="card-title">Dificultades Numéricas (song.ini)</div>
                         <div class="row g-3">
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Guitarra (diff_guitar):</label>
+                                <label class="form-label small text-muted">diff_guitar:</label>
                                 <input type="number" class="form-control" id="metaDiffGuitar" min="0" max="6" value="3">
                             </div>
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Bajo (diff_bass):</label>
+                                <label class="form-label small text-muted">diff_bass:</label>
                                 <input type="number" class="form-control" id="metaDiffBass" min="0" max="6" value="2">
                             </div>
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Batería (diff_drums):</label>
+                                <label class="form-label small text-muted">diff_drums:</label>
                                 <input type="number" class="form-control" id="metaDiffDrums" min="0" max="6" value="3">
                             </div>
                             <div class="col-md-3 col-6">
-                                <label class="form-label small text-muted">Teclado (diff_keys):</label>
-                                <input type="number" class="form-control" id="metaDiffKeys" min="0" max="6" value="4">
+                                <label class="form-label small text-muted">diff_keys:</label>
+                                <input type="number" class="form-control" id="metaDiffKeys" min="0" max="6" value="3">
                             </div>
-                        </div>
-
-                        <div class="alert alert-dark mt-4 border-secondary py-2 small text-muted">
-                            🔒 <strong>Créditos Ocultos:</strong> Los créditos a <em>Ey-Liam</em> y <em>EFHIII</em> se insertan automáticamente al final del archivo <code>song.ini</code> como metadatos limpios (<code>credit_arranged_by = Ey-Liam</code>, <code>credit_courtesy_of = EFHIII</code>, <code>credit_other = Ey-Liam & EFHIII</code>) sin alterar el juego.
                         </div>
                     </div>
                 </div>
 
                 <div class="col-lg-5">
                     <div class="card-panel text-center">
-                        <div class="card-title text-center">Portada del Álbum (album.png)</div>
+                        <div class="card-title text-center">Portada (album.png)</div>
                         <div class="my-3">
                             <img id="albumArtPreview" src="https://via.placeholder.com/200x200/161f30/38bdf8?text=Album+Art" class="rounded shadow" style="width: 180px; height: 180px; object-fit: cover;" alt="Portada">
                         </div>
                         <input type="file" class="form-control form-control-sm mb-3" id="albumArtInput" accept="image/png,image/jpeg">
-                        <small class="text-muted d-block">Si no subes una imagen, se generará una portada de estilo neón automáticamente.</small>
                     </div>
 
                     <div class="card-panel">
-                        <div class="card-title">Descarga Directa para Clone Hero & YARG</div>
+                        <div class="card-title">Exportación de Paquete</div>
                         <button class="btn btn-success-glow w-100 py-3 mb-2" id="btnExportZip">
-                            📦 Descargar Paquete Completo (.ZIP)
+                            Descargar Paquete ZIP
                         </button>
-                        <small class="text-muted d-block text-center mb-3">
-                            Incluye <code>notes.chart</code> verificado, <code>song.ini</code>, portada y audios listos para jugar.
-                        </small>
 
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-info flex-fill" id="btnExportChartOnly">📄 notes.chart</button>
-                            <button class="btn btn-outline-info flex-fill" id="btnExportIniOnly">⚙️ song.ini</button>
-                            <button class="btn btn-outline-secondary flex-fill" id="btnViewChartText">👁️ Ver Chart</button>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-outline-info flex-fill" id="btnExportChartOnly">notes.chart</button>
+                            <button class="btn btn-outline-info flex-fill" id="btnExportIniOnly">song.ini</button>
+                            <button class="btn btn-outline-secondary flex-fill" id="btnViewChartText">Ver Chart</button>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- TAB 6: CRÉDITOS & ARQUITECTURA -->
+        <!-- TAB 6: INFORMACIÓN -->
         <section id="tab-about" class="tab-pane">
             <div class="card-panel">
-                <div class="card-title">Arquitectura de Chart-Lab y Reconocimientos</div>
-                <div class="mb-4">
-                    <h5>Inspirado en <a href="https://github.com/EFHIII/midi-ch" target="_blank" class="text-info">EFHIII / midi-ch</a> & <a href="https://github.com/uwuHero/uwuHero.github.io" target="_blank" class="text-info">uwuHero</a></h5>
-                    <p class="text-muted">
-                        <strong>Chart-Lab</strong> es una reimaginación completa desde cero, diseñada para producción profesional sin errores.
-                        Agradecemos a <strong>Saffron Haas (@EFHIII)</strong> por crear el concepto original de conversión MIDI-CH y a la comunidad de <strong>uwuHero</strong> por popularizar la simulación de ritmo en el navegador.
-                    </p>
-                </div>
-
-                <h5 class="text-info">Ecosistema Multi-Lenguaje de Chart-Lab:</h5>
-                <ul class="text-muted">
-                    <li><strong>Web Studio (HTML / CSS / JS):</strong> Interfaz reactiva oscura con canvas highway 3D, reproductor de audio stems, silabificador fonético y empaquetador ZIP cliente.</li>
-                    <li><strong>C# & ShaderLab (Unity / Desktop):</strong> Modelos de datos para Unity, linter de notas y shaders HLSL para carreteras curvas y gemas cristalinas con Star Power.</li>
-                    <li><strong>Python (CLI & Validator):</strong> Kit de herramientas por línea de comandos con analizador binario de MIDI y auditor de colisión de sustains.</li>
-                    <li><strong>Java Core (Cross-Platform):</strong> Motor portable para procesamiento de secuencias MIDI y renderizado por lotes con Maven.</li>
+                <div class="card-title">Acerca de Chart-Lab</div>
+                <p class="text-muted small">
+                    Chart-Lab es una suite modular para análisis, generación y validación matemática de charts para rhythm games.
+                </p>
+                <ul class="text-muted small">
+                    <li>Generación multi-instrumento: Lead, Bass, Drums, Keys, Rhythm, Vocals.</li>
+                    <li>Soporte de cuatro niveles de dificultad: Expert, Hard, Medium, Easy.</li>
+                    <li>Alineación fonética de texto a notas vocales.</li>
+                    <li>Validación de colisiones temporales y recorte automático de sustains.</li>
                 </ul>
             </div>
         </section>
@@ -470,14 +435,14 @@ Twenty-something's going to be so great..."></textarea>
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content bg-dark text-light border-secondary">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title">Vista del Archivo notes.chart</h5>
+                    <h5 class="modal-title">notes.chart</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <textarea class="form-control bg-black text-light font-monospace" id="chartTextPreview" rows="22" readonly></textarea>
                 </div>
                 <div class="modal-footer border-secondary">
-                    <button class="btn btn-outline-info" id="btnCopyChartText">📋 Copiar al Portapapeles</button>
+                    <button class="btn btn-outline-info" id="btnCopyChartText">Copiar</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
@@ -486,7 +451,7 @@ Twenty-something's going to be so great..."></textarea>
 
     <!-- Footer -->
     <footer class="app-footer">
-        Chart-Lab &copy; 2024 - Reconocimiento especial a <a href="https://github.com/EFHIII/midi-ch" target="_blank">EFHIII</a> & <a href="https://github.com/uwuHero/uwuHero.github.io" target="_blank">uwuHero</a>. Compatible con Clone Hero, YARG, Moonscraper y Phase Shift.
+        <small class="text-muted">Chart-Lab Suite &bull; <sub>Inspiración conceptual: EFHIII</sub></small>
     </footer>
 
     <!-- Scripts -->

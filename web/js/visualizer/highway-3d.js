@@ -1,5 +1,5 @@
 /**
- * MIDI-CH Studio Pro - 60 FPS 3D Perspective Rhythm Highway Visualizer
+ * Chart-Lab - 3D Perspective Rhythm Highway Visualizer
  * Renders Clone Hero / Guitar Hero style highway with perspective notes, sustains,
  * beat lines, hit effects, and real-time karaoke lyrics banner.
  */

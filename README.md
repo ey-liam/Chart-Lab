@@ -1,149 +1,60 @@
-# 🎸 Chart-Lab
+# Chart-Lab
 
-<div align="center">
-
-![Chart-Lab Banner](https://img.shields.io/badge/CHART--LAB-Studio%20v1.0-38bdf8?style=for-the-badge&logo=musicalnotes&logoColor=white)
-![Clone Hero & YARG Compatible](https://img.shields.io/badge/Clone%20Hero%20%7C%20YARG-100%25%20Compatible-00e676?style=for-the-badge)
-![Zero-Error Chart Guarantee](https://img.shields.io/badge/Mathematical-Zero--Error%20Linter-ffea00?style=for-the-badge)
-![Multi-Language](https://img.shields.io/badge/Stack-Web%20%7C%20C%23%20%7C%20ShaderLab%20%7C%20Python%20%7C%20Java-d500f9?style=for-the-badge)
-
-<p align="center">
-  <b>Suite profesional de conversión, auto-charter, sincronización y simulación de ritmo para Clone Hero, YARG, Moonscraper y Phase Shift.</b><br>
-  <i>Reimaginación desde cero del concepto pionero de <a href="https://github.com/EFHIII/midi-ch">EFHIII / midi-ch</a> e inspirada en la simulación interactiva de <a href="https://github.com/uwuHero/uwuHero.github.io">uwuHero</a>.</i>
-</p>
-
-</div>
+Cross-platform multi-instrument charting, alignment, and validation suite for rhythm games (Clone Hero, YARG, Moonscraper, Phase Shift).
 
 ---
 
-## 📑 Tabla de Contenidos
+## Overview
 
-- [¿Por qué Chart-Lab?](#-por-qué-chart-lab)
-- [Comparativa con Herramientas Anteriores](#-comparativa-con-herramientas-anteriores)
-- [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
-- [Ecosistemas y Componentes](#-ecosistemas-y-componentes)
-  - [1. Web Studio (HTML5, CSS3, JS)](#1-web-studio-html5-css3-javascript)
-  - [2. Unity, C# & ShaderLab](#2-unity-c--shaderlab-shaders)
-  - [3. Python Toolkit & CLI](#3-python-toolkit--cli)
-  - [4. Java Core Engine](#4-java-core-engine)
-- [Garantía "Zero-Error Chart"](#-garantía-zero-error-chart)
-- [Instalación y Uso](#-instalación-y-uso)
-- [Créditos y Licencia](#-créditos-y-licencia)
+Chart-Lab is a modular ecosystem for generating, synchronizing, and validating rhythm game charts from MIDI data. It supports multi-track conversion, automated multi-difficulty generation, syllable alignment for vocals, audio stem routing, and real-time validation against timing and sustain collision defects.
 
 ---
 
-## 💡 ¿Por qué Chart-Lab?
+## Architecture
 
-En la comunidad de rhythm games, convertir canciones MIDI en charts jugables siempre ha sido una tarea fragmentada:
-- **midi-ch (EFHIII):** Fue el gran pionero, pero requería usar páginas aisladas (`/` para guitarra, `/drums` para percusión, `/lyrics` con MusicXML) y carecía de metadatos completos (`song.ini`) o gestión de audio.
-- **uwuHero:** Demostró lo divertido de jugar directamente en el navegador con soundfonts y puntuación, pero sin soporte para generación de paquetes completos de juego.
+The project consists of decoupled components implemented across modern software stacks:
 
-**Chart-Lab** rediseña todo el proceso desde sus fundamentos matemáticos:
-1. **Unificación Multi-Instrumento:** Procesa en un único archivo MIDI la **Guitarra Líder**, **Bajo**, **Guitarra Rítmica**, **Teclados/Piano**, **Batería (Pro Drums)** y **Voz/Letras**.
-2. **Generación Automática de las 4 Dificultades:** `Expert`, `Hard`, `Medium` y `Easy` para todos los instrumentos con decimación rítmica y control de acordes.
-3. **Alineador Fonético de Letras:** Si el MIDI no trae letras incrustadas, pegas el texto lírico y el motor divide las sílabas automáticamente y las ancla a las notas vocales en el formato exacto de Clone Hero (`phrase_start`, `lyric `, `phrase_end`).
-4. **Sincronización de Audio & Stems:** Ajuste milimétrico de desfase (**Audio Offset** en ms) para pistas completas o stems separados (`guitar.ogg`, `bass.ogg`, `drums.ogg`, etc.).
-5. **Carretera 3D Interactiva & Simulador:** Canvas con perspectiva cónica a 60 FPS, shaders ShaderLab HLSL para Unity y sintetizador polifónico en tiempo real.
-6. **Paquete ZIP de 1 Clic:** Exporta `notes.chart`, `song.ini`, portada (`album.png`) y audios listos para arrastrar a tu carpeta de canciones.
+- **Web Studio (`web/`)**: Single-page application built with HTML5, CSS3, and modern JavaScript. Includes Web Audio API stem mixing, Canvas 3D highway perspective rendering, and in-browser ZIP packaging.
+- **Unity & C# (`unity_csharp/`)**: Core chart data models, high-performance `.chart` parser, gameplay controller with combo scoring, and custom ShaderLab/HLSL shaders for curved perspective highways and faceted notes.
+- **Python Toolkit (`python/`)**: Command-line interface and library for automated batch processing, binary MIDI parsing, and mathematical validation.
+- **Java Core (`java/`)**: Standard Java library using `javax.sound.midi` with Maven build configuration for server-side or cross-platform desktop integration.
 
 ---
 
-## 📊 Comparativa con Herramientas Anteriores
+## Features
 
-| Característica | midi-ch (EFHIII) | uwuHero | **Chart-Lab** |
-| :--- | :---: | :---: | :---: |
-| **Instrumentos Simultáneos** | ❌ (Solo 1 por página) | ❌ (Solo 1 por track) | **✅ Guitarra, Bajo, Batería, Teclas, Rítmica, Voz** |
-| **Dificultades Automáticas** | ⚠️ (Solo en `/auto`) | ❌ | **✅ Expert, Hard, Medium, Easy simultáneos** |
-| **Motor de Batería (GM Drums)** | ⚠️ (Página aparte) | ❌ | **✅ 4-Lane + Platillos Pro (Yellow, Blue, Green)** |
-| **Alineador de Letras desde Texto** | ❌ (Solo MusicXML) | ❌ | **✅ Fonético automático a notas vocales** |
-| **Gestión de Stems & Audio Offset** | ❌ | ❌ | **✅ Offset en ms + Mute/Solo por stem** |
-| **Auditor de Errores de Chart** | ❌ | ❌ | **✅ ChartValidator matemático integrado** |
-| **Visualizador / Simulador** | ⚠️ (2D plano) | ✅ (Web player) | **✅ Canvas 3D a 60 FPS + Shaders Unity** |
-| **Descarga Lista para el Juego** | ⚠️ (Solo `.chart`) | ❌ | **✅ Paquete ZIP (`.chart` + `song.ini` + audio)** |
+- **Multi-Instrument Processing**: Simultaneous conversion of Lead Guitar, Bass, Rhythm Guitar, Keyboards/Piano, Drums, and Vocals from a single MIDI source.
+- **Automated Difficulties**: Generates four standard difficulty tiers (`Expert`, `Hard`, `Medium`, `Easy`) with rhythm decimation and chord-size constraints.
+- **General MIDI Drum Mapping**: Maps GM percussion tracks to 4-lane layout with kick pedal detection and Pro Cymbal assignments (Yellow, Blue, Green).
+- **Phonetic Syllable Aligner**: Parses plain text lyrics, computes syllable splits, and anchors them sequentially to vocal track note events with phrase markers.
+- **Stem Management and Latency Adjustment**: Supports individual audio stems (`Guitar.wav`, `Bass.wav`, `Drums.wav`, `Keys.wav`, `Vocals.wav`, `song.ogg`) with millisecond-level offset configuration.
+- **Chart Validation Engine**: Verifies tick monotonicity, clips overlapping sustains on identical frets, and enforces boundary constraints.
+- **YARG & Clone Hero Package Export**: Produces verified `notes.chart`, standardized `song.ini` with integer difficulty ratings, and optional album artwork packaged into a compressed archive.
 
 ---
 
-## 🏛️ Arquitectura del Proyecto
+## Installation and Execution
 
-```text
-Chart-Lab/
-├── .github/
-│   ├── workflows/verify-charts.yml    # CI/CD automatizado para validar charts
-│   └── ISSUE_TEMPLATE/                # Plantillas para bugs y peticiones
-├── web/                               # Web Studio interactivo (SPA)
-│   ├── index.html                     # Interfaz de usuario Cyberpunk
-│   ├── styles.css                     # Estilos dark neón
-│   ├── js/
-│   │   ├── core/                      # Parsers y motores matemáticos
-│   │   │   ├── midi-parser.js         # Lector binario de MIDI
-│   │   │   ├── charter-engine.js      # Asignación a frets y acordes
-│   │   │   ├── lyrics-aligner.js      # Silabificador fonético
-│   │   │   └── chart-validator.js     # Linter matemático de colisiones
-│   │   ├── audio/audio-manager.js     # Web Audio API & Stems
-│   │   ├── visualizer/highway-3d.js   # Highway 3D a 60 FPS
-│   │   ├── export/package-exporter.js # Generador de .chart, song.ini y ZIP
-│   │   └── app.js                     # Controlador principal
-│   └── vendor/jszip.min.js            # Empaquetado cliente offline
-├── unity_csharp/                      # Integración con Unity / Desktop
-│   ├── Scripts/
-│   │   ├── ChartLabModel.cs           # Modelos de datos de notas y canciones
-│   │   ├── ChartParser.cs             # Lector de charts y cálculo temporal
-│   │   ├── HighwayController.cs       # Controlador de carretera y puntuación (uwuHero)
-│   │   └── ChartValidator.cs          # Linter en C# contra colisiones
-│   └── Shaders/
-│       ├── RhythmHighway.shader       # ShaderLab HLSL carretera curva y compases
-│       └── NoteGemGlow.shader         # ShaderLab gemas 3D con Star Power
-├── python/                            # Kit de herramientas por consola
-│   ├── chart_lab/
-│   │   ├── midi_processor.py          # Lector binario nativo de MIDI
-│   │   ├── charter.py                 # Algoritmo de mapeo a instrumentos
-│   │   ├── lyrics_sync.py             # Sincronizador de letras
-│   │   └── validator.py               # Auditor y reparador de charts
-│   ├── cli.py                         # CLI ejecutable
-│   └── requirements.txt
-├── java/                              # Motor multiplataforma Java
-│   ├── src/main/java/com/chartlab/
-│   │   ├── model/                     # ChartSong, ChartNote
-│   │   ├── parser/MidiReader.java     # javax.sound.midi parser
-│   │   ├── engine/ChartBuilder.java   # Generador de notas
-│   │   └── Main.java                  # CLI en Java
-│   └── pom.xml                        # Configuración Maven
-├── demo/                              # Canción de demostración incluida
-│   ├── Olivia_Rodrigo_-_teenage_dream.mid
-│   └── lyrics_sample.txt
-├── server.js                          # Servidor HTTP local sin dependencias
-├── start.bat                          # Lanzador de 1 clic para Windows
-└── README.md
+### Web Studio
+
+Launch the local server:
+
+```bash
+# Windows
+start.bat
+
+# Manual
+node server.js
 ```
 
----
+Navigate to `http://localhost:3000` in a modern browser.
 
-## 🛡️ Garantía "Zero-Error Chart"
+### Python CLI
 
-Uno de los problemas más comunes en charters generados automáticamente son los errores de colisión y tiempo. **Chart-Lab** incluye el motor **`ChartValidator`** (implementado en JS, Python y C#) que ejecuta auditorías matemáticas automáticas:
-
-1. **Monotonía Temporal Estricta ($T_i \ge T_{i-1}$):** Previene que notas fuera de orden corrompan el motor de Clone Hero.
-2. **Protección Contra Colisión de Sustains:** Si una nota sostenida sobrepasa a la siguiente nota en el mismo traste, el sustain se recorta automáticamente respetando un margen de seguridad ($Gap = PPQ / 8$).
-3. **Verificación de Límites de Trastes:** Garantiza trastes válidos [0..4], notas abiertas [7] y platillos [64..66].
-4. **Validación de SyncTrack:** Sincroniza tiempos de compás y BPMs en microsegundos exactos.
-
----
-
-## 🚀 Instalación y Uso
-
-### 1. Web Studio (Recomendado)
-Haz doble clic en **`start.bat`** (o ejecuta `node server.js`). Tu navegador se abrirá automáticamente en:
-`http://localhost:3000`
-
-- Arrastra tu archivo `.mid`.
-- Usa *"✨ Auto-Asignar Inteligente"* o ajusta los instrumentos manualmente.
-- Pega la letra y pulsa *"Sincronizar Sílabas"*.
-- Carga tu audio y ajusta el **Audio Offset**.
-- Prueba la canción con <kbd>Barra Espaciadora</kbd> en la Highway 3D.
-- Pulsa **"📦 Descargar Paquete Completo (.ZIP)"**.
-
-### 2. Python CLI
 ```bash
+python python/cli.py <path-to-midi> [options]
+
+# Example
 python python/cli.py demo/Olivia_Rodrigo_-_teenage_dream.mid \
   --name "teenage dream" \
   --artist "Olivia Rodrigo" \
@@ -153,31 +64,23 @@ python python/cli.py demo/Olivia_Rodrigo_-_teenage_dream.mid \
   --out ./output
 ```
 
-### 3. Java Core CLI
+### Java CLI
+
 ```bash
 cd java
 mvn clean package
-java -jar target/chart-lab-core-1.0.0.jar ../demo/Olivia_Rodrigo_-_teenage_dream.mid ../output
+java -jar target/chart-lab-core-1.0.0.jar <path-to-midi> [output-dir]
 ```
 
-### 4. Unity / C#
-Copia la carpeta `unity_csharp/` a tu proyecto de Unity. Arrastra `HighwayController` a un GameObject en tu escena y asigna los materiales con `RhythmHighway.shader` y `NoteGemGlow.shader`.
+### Unity Integration
+
+Import the `unity_csharp/` directory into your Unity project assets. Attach `HighwayController.cs` to a GameObject and apply `RhythmHighway.shader` and `NoteGemGlow.shader` to target materials.
 
 ---
 
-## 🎮 Cómo Jugar tu Canción en Clone Hero o YARG
+## License
 
-1. Descomprime el archivo `.zip` descargado.
-2. Copia la carpeta resultante en:
-   - **Clone Hero:** `Documentos/Clone Hero/Songs/`
-   - **YARG:** `Documentos/YARG/Songs/`
-3. Inicia el juego y entra en **Settings > Scan Songs**.
-4. ¡Disfruta tocando con Guitarra, Bajo, Batería o Teclados!
+Distributed under the MIT License. See `LICENSE` for details.
 
----
-
-## 🙏 Créditos y Agradecimientos
-
-- **Concepto Original:** [Saffron Haas (@EFHIII)](https://github.com/EFHIII/midi-ch) por la lógica inicial de conversión MIDI a Clone Hero.
-- **Inspiración de Simulación:** Comunidad de [uwuHero](https://github.com/uwuHero/uwuHero.github.io).
-- **Diseño & Desarrollo:** Antigravity AI & Liam.
+<br>
+<sub>Inspiration: Conceptual idea inspired by EFHIII.</sub>

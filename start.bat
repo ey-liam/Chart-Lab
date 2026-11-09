@@ -1,6 +1,6 @@
 @echo off
-title MIDI-CH Studio Pro Launcher
-echo Iniciando MIDI-CH Studio Pro...
+title Chart-Lab Launcher
+echo Iniciando Chart-Lab Server...
 cd /d "%~dp0"
 node server.js
 pause
