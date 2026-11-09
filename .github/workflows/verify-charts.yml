@@ -1,0 +1,41 @@
+name: Chart-Lab CI - Validation & Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  python-test:
+    name: Python Validator & CLI Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run CLI Test & Chart Validation
+        run: |
+          python python/cli.py demo/Olivia_Rodrigo_-_teenage_dream.mid --name "teenage dream" --artist "Olivia Rodrigo" --lyrics demo/lyrics_sample.txt --out ./output_ci
+
+  node-test:
+    name: Web Studio & JS Engine Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax audit
+        run: |
+          node -c web/js/core/midi-parser.js
+          node -c web/js/core/charter-engine.js
+          node -c web/js/core/lyrics-aligner.js
+          node -c web/js/core/chart-validator.js
+          node -c web/js/audio/audio-manager.js
+          node -c web/js/visualizer/highway-3d.js
+          node -c web/js/export/package-exporter.js
+          node -c web/js/app.js

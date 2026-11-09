@@ -1,0 +1,12 @@
+node_modules/
+output/
+output_ci/
+*.log
+.DS_Store
+Thumbs.db
+target/
+*.class
+__pycache__/
+*.pyc
+.idea/
+.vscode/

@@ -1,0 +1,5 @@
+# Chart-Lab Python Core
+# Zero external dependencies required (uses standard library struct, os, sys, argparse)
+# Optional enhancements:
+# mido>=1.3.0
+# soundfile>=0.12.1
