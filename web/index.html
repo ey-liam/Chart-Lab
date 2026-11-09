@@ -136,9 +136,87 @@
                             <label class="form-check-label small" for="tuningOpenNotes">Habilitar en Bajo</label>
                         </div>
                     </div>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small text-muted">Frecuencia Star Power:</label>
+                        <select class="form-select form-select-sm" id="tuningStarPower">
+                            <option value="16" selected>Cada 16 compases</option>
+                            <option value="8">Cada 8 compases (Frecuente)</option>
+                            <option value="24">Cada 24 compases (Exigente)</option>
+                            <option value="0">Desactivado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label class="form-label small text-muted">Pedal Bombo (Drums):</label>
+                        <select class="form-select form-select-sm" id="tuningDrumPedal">
+                            <option value="single" selected>Pedal Simple (1 Pie)</option>
+                            <option value="double">Doble Pedal (Completo)</option>
+                        </select>
+                    </div>
                     <div class="col-md-2 col-12">
                         <label class="form-label small text-muted">Densidad (<span id="densityLabel">100%</span>):</label>
                         <input type="range" class="form-range" id="tuningDensity" min="50" max="150" value="100" step="10">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Track Stats & Difficulty Advisor -->
+            <div class="card-panel">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                    <div class="card-title mb-0">Métricas y Recomendador de Dificultad</div>
+                    <div class="d-flex gap-2">
+                        <select class="form-select form-select-sm" id="statsInstSelect" style="width: auto;">
+                            <option value="guitar">Guitarra Líder</option>
+                            <option value="bass">Bajo</option>
+                            <option value="drums">Batería</option>
+                            <option value="keys">Teclado</option>
+                            <option value="rhythm">Guitarra Rítmica</option>
+                        </select>
+                        <select class="form-select form-select-sm" id="statsDiffSelect" style="width: auto;">
+                            <option value="Expert" selected>Expert</option>
+                            <option value="Hard">Hard</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Easy">Easy</option>
+                        </select>
+                        <button class="btn btn-sm btn-outline-info" id="btnApplySuggestedDiff">Aplicar a song.ini</button>
+                    </div>
+                </div>
+
+                <div class="row g-2 text-center">
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <small class="text-muted d-block">Notas Totales</small>
+                            <span class="fs-5 fw-bold text-light" id="statTotalNotes">0</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <small class="text-muted d-block">NPS Promedio</small>
+                            <span class="fs-5 fw-bold text-info" id="statNpsAvg">0.0</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <small class="text-muted d-block">Pico NPS</small>
+                            <span class="fs-5 fw-bold text-warning" id="statNpsPeak">0</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <small class="text-muted d-block">Acordes</small>
+                            <span class="fs-5 fw-bold text-light" id="statChords">0</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 bg-dark rounded border border-secondary">
+                            <small class="text-muted d-block">Star Power</small>
+                            <span class="fs-5 fw-bold text-primary" id="statStarPower">0</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 bg-dark rounded border border-info">
+                            <small class="text-info d-block">Dificultad Sugerida</small>
+                            <span class="fs-5 fw-bold text-success" id="statSuggestedDiff">Nivel 3</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -173,6 +251,9 @@
 
                         <button class="btn btn-primary-glow w-100" id="btnAlignLyrics">
                             Sincronizar Sílabas
+                        </button>
+                        <button class="btn btn-outline-info w-100 mt-2" id="btnAutoSections">
+                            ✨ Auto-Generar Secciones de Práctica
                         </button>
                     </div>
                 </div>

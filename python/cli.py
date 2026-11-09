@@ -8,7 +8,7 @@ import os
 import sys
 import argparse
 from chart_lab.midi_processor import parse_midi_file
-from chart_lab.charter import auto_assign_tracks, chart_fretted, chart_drums
+from chart_lab.charter import auto_assign_tracks, chart_fretted, chart_drums, generate_star_power
 from chart_lab.lyrics_sync import parse_text_lyrics, align_lyrics
 from chart_lab.validator import validate_and_repair_chart
 
@@ -133,8 +133,16 @@ def main():
 
         for track_name, notes in all_charts.items():
             f.write(f"[{track_name}]\n{{\n")
+            lines = []
             for tick, fret, dur in notes:
-                f.write(f"  {tick} = N {fret} {dur}\n")
+                lines.append(f"  {tick} = N {fret} {dur}")
+            # Generate Star Power phrases
+            sp_phrases = generate_star_power(notes, midi_data.ppq, frequency_measures=16)
+            for tick, dur in sp_phrases:
+                lines.append(f"  {tick} = S 2 {dur}")
+            lines.sort(key=lambda l: int(l.strip().split()[0]))
+            for line in lines:
+                f.write(line + "\n")
             f.write("}\n")
 
     with open(ini_file, "w", encoding="utf-8") as f:

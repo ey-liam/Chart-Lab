@@ -367,6 +367,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const tuningStarPower = document.getElementById('tuningStarPower');
+    if (tuningStarPower) {
+        tuningStarPower.addEventListener('change', (e) => {
+            const freq = parseInt(e.target.value);
+            for (let k in state.configs) state.configs[k].starPowerFrequency = freq;
+            recalculateCharts();
+            showToast(`Star Power: cada ${freq} compases`, 'info');
+        });
+    }
+
+    const tuningDrumPedal = document.getElementById('tuningDrumPedal');
+    if (tuningDrumPedal) {
+        tuningDrumPedal.addEventListener('change', (e) => {
+            if (state.configs.drums) {
+                state.configs.drums.singleKickPedal = (e.target.value === 'single');
+                recalculateCharts();
+                showToast(`Pedal de bombo: ${e.target.value === 'single' ? 'Pedal Simple' : 'Doble Pedal'}`, 'info');
+            }
+        });
+    }
+
     const btnReRoll = document.getElementById('btnReRoll');
     if (btnReRoll) {
         btnReRoll.addEventListener('click', () => {
@@ -420,6 +441,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Update active instrument selector options
         updateHighwayInstrumentOptions();
+
+        // Update Live Stats
+        updateLiveStats();
+    }
+
+    function updateLiveStats() {
+        if (!state.allCharts || !state.midiData) return;
+        const instSel = document.getElementById('statsInstSelect');
+        const diffSel = document.getElementById('statsDiffSelect');
+        if (!instSel || !diffSel) return;
+
+        const inst = instSel.value;
+        const diff = diffSel.value;
+        const track = (state.allCharts[inst] && state.allCharts[inst][diff]) || [];
+        const stats = CharterEngine.calculateTrackStats(track, state.midiData);
+
+        const totalEl = document.getElementById('statTotalNotes');
+        const avgEl = document.getElementById('statNpsAvg');
+        const peakEl = document.getElementById('statNpsPeak');
+        const chordsEl = document.getElementById('statChords');
+        const spEl = document.getElementById('statStarPower');
+        const diffEl = document.getElementById('statSuggestedDiff');
+
+        if (totalEl) totalEl.textContent = stats.totalNotes;
+        if (avgEl) avgEl.textContent = stats.npsAvg;
+        if (peakEl) peakEl.textContent = stats.npsPeak;
+        if (chordsEl) chordsEl.textContent = stats.chordCount;
+        if (spEl) spEl.textContent = stats.starPowerCount;
+        if (diffEl) {
+            diffEl.textContent = `Nivel ${stats.suggestedDiff}`;
+            diffEl.dataset.diffVal = stats.suggestedDiff;
+        }
+    }
+
+    const statsInstSelect = document.getElementById('statsInstSelect');
+    if (statsInstSelect) statsInstSelect.addEventListener('change', updateLiveStats);
+
+    const statsDiffSelect = document.getElementById('statsDiffSelect');
+    if (statsDiffSelect) statsDiffSelect.addEventListener('change', updateLiveStats);
+
+    const btnApplySuggestedDiff = document.getElementById('btnApplySuggestedDiff');
+    if (btnApplySuggestedDiff) {
+        btnApplySuggestedDiff.addEventListener('click', () => {
+            const instSel = document.getElementById('statsInstSelect');
+            const diffEl = document.getElementById('statSuggestedDiff');
+            if (!instSel || !diffEl) return;
+
+            const inst = instSel.value;
+            const diffVal = parseInt(diffEl.dataset.diffVal || 3);
+            const diffMap = {
+                guitar: 'diffGuitar',
+                bass: 'diffBass',
+                drums: 'diffDrums',
+                keys: 'diffKeys',
+                rhythm: 'diffRhythm'
+            };
+            const metaKey = diffMap[inst];
+            if (metaKey) {
+                state.metadata[metaKey] = diffVal;
+                syncMetadataToForm();
+                showToast(`Dificultad de ${inst} actualizada a Nivel ${diffVal} en song.ini`, 'success');
+            }
+        });
+    }
+
+    const btnAutoSections = document.getElementById('btnAutoSections');
+    if (btnAutoSections) {
+        btnAutoSections.addEventListener('click', () => {
+            if (!state.midiData) {
+                showToast('Cargue un archivo MIDI primero', 'warning');
+                return;
+            }
+            const autoSections = CharterEngine.generateAutoPracticeSections(state.midiData);
+            state.lyricEvents = state.lyricEvents.filter(e => !e.eventText || !e.eventText.startsWith('section ')).concat(autoSections);
+            state.lyricEvents.sort((a, b) => a.tick - b.tick);
+            renderLyricsEventsTable();
+            showToast(`${autoSections.length} secciones de práctica generadas`, 'success');
+        });
     }
 
     function updateHighwayInstrumentOptions() {

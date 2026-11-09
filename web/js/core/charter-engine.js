@@ -680,6 +680,199 @@
     }
 
     /**
+     * Generates standard Star Power phrases (S 2 <duration>)
+     */
+    function generateStarPowerPhrases(notes, ppq, frequencyMeasures = 16) {
+        if (!notes || notes.length === 0 || frequencyMeasures <= 0) return [];
+        const measureTicks = ppq * 4;
+        const intervalTicks = frequencyMeasures * measureTicks;
+        const phraseLengthTicks = Math.round(2 * measureTicks);
+
+        const maxTick = notes[notes.length - 1].tick;
+        const phrases = [];
+
+        for (let targetTick = Math.round(intervalTicks / 2); targetTick < maxTick; targetTick += intervalTicks) {
+            const noteInWindow = notes.find(n => n.tick >= targetTick && n.tick <= targetTick + intervalTicks);
+            if (noteInWindow) {
+                const startTick = noteInWindow.tick;
+                const endNote = [...notes].reverse().find(n => n.tick >= startTick && n.tick <= startTick + phraseLengthTicks);
+                const duration = endNote ? (endNote.tick - startTick + (endNote.sustain || 0) + 120) : phraseLengthTicks;
+                phrases.push({ tick: startTick, duration: Math.max(duration, measureTicks) });
+            }
+        }
+        return phrases;
+    }
+
+    /**
+     * Automatically identifies solo sections for leader instruments
+     */
+    function generateSoloMarkers(notes, ppq) {
+        if (!notes || notes.length < 20) return [];
+        const measureTicks = ppq * 4;
+        const solos = [];
+        const windowTicks = measureTicks * 2;
+
+        let inSolo = false;
+        let soloStart = 0;
+        let soloEnd = 0;
+
+        for (let i = 0; i < notes.length; i++) {
+            const currentTick = notes[i].tick;
+            const windowNotes = notes.filter(n => n.tick >= currentTick && n.tick <= currentTick + windowTicks);
+            const isHighDensity = windowNotes.length >= 16;
+
+            if (isHighDensity && !inSolo) {
+                inSolo = true;
+                soloStart = currentTick;
+                soloEnd = currentTick + windowTicks;
+            } else if (inSolo) {
+                if (isHighDensity) {
+                    soloEnd = Math.max(soloEnd, currentTick + windowTicks);
+                } else if (currentTick > soloEnd) {
+                    if (soloEnd - soloStart >= measureTicks * 2) {
+                        solos.push({ startTick: soloStart, endTick: soloEnd });
+                    }
+                    inSolo = false;
+                }
+            }
+        }
+
+        if (inSolo && (soloEnd - soloStart >= measureTicks * 2)) {
+            solos.push({ startTick: soloStart, endTick: soloEnd });
+        }
+
+        return solos;
+    }
+
+    /**
+     * Single kick pedal filter for drums (CSC guidelines)
+     */
+    function filterSingleKickPedal(drumEvents, ppq, minIntervalMs = 130, midiData) {
+        const result = [];
+        let lastKickTime = -999;
+
+        for (let ev of drumEvents) {
+            if (ev.fret === 0) {
+                const timeSec = (midiData && midiData.tickToSeconds) ? midiData.tickToSeconds(ev.tick) : (ev.tick / (ppq * 2));
+                const timeMs = timeSec * 1000;
+                if (timeMs - lastKickTime >= minIntervalMs) {
+                    result.push(ev);
+                    lastKickTime = timeMs;
+                }
+            } else {
+                result.push(ev);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Calculates comprehensive track statistics and suggested difficulty
+     */
+    function calculateTrackStats(notes, midiData) {
+        if (!notes || notes.length === 0) {
+            return {
+                totalNotes: 0,
+                npsAvg: 0,
+                npsPeak: 0,
+                chordCount: 0,
+                sustainCount: 0,
+                starPowerCount: 0,
+                suggestedDiff: 1
+            };
+        }
+
+        const totalNotes = notes.length;
+        let chordCount = 0;
+        let sustainCount = 0;
+        const tickMap = {};
+
+        notes.forEach(n => {
+            tickMap[n.tick] = (tickMap[n.tick] || 0) + 1;
+            if (n.sustain && n.sustain > 0) sustainCount++;
+        });
+
+        for (let t in tickMap) {
+            if (tickMap[t] > 1) chordCount++;
+        }
+
+        const durationSec = (midiData && midiData.totalDurationSec) ? midiData.totalDurationSec : 180;
+        const npsAvg = parseFloat((totalNotes / Math.max(durationSec, 1)).toFixed(2));
+
+        let npsPeak = 0;
+        const timeNotes = notes.map(n => (midiData && midiData.tickToSeconds) ? midiData.tickToSeconds(n.tick) : (n.tick / 960));
+        timeNotes.sort((a, b) => a - b);
+
+        for (let i = 0; i < timeNotes.length; i++) {
+            const t0 = timeNotes[i];
+            let countInSecond = 0;
+            for (let j = i; j < timeNotes.length; j++) {
+                if (timeNotes[j] - t0 <= 1.0) countInSecond++;
+                else break;
+            }
+            if (countInSecond > npsPeak) npsPeak = countInSecond;
+        }
+
+        let suggestedDiff = 1;
+        if (npsPeak >= 14 || npsAvg >= 6.0) suggestedDiff = 6;
+        else if (npsPeak >= 10 || npsAvg >= 4.5) suggestedDiff = 5;
+        else if (npsPeak >= 7 || npsAvg >= 3.2) suggestedDiff = 4;
+        else if (npsPeak >= 5 || npsAvg >= 2.0) suggestedDiff = 3;
+        else if (npsPeak >= 3 || npsAvg >= 1.0) suggestedDiff = 2;
+        else suggestedDiff = 1;
+
+        const starPowerCount = (notes._starPowers && notes._starPowers.length) || 0;
+
+        return {
+            totalNotes,
+            npsAvg,
+            npsPeak,
+            chordCount,
+            sustainCount,
+            starPowerCount,
+            suggestedDiff
+        };
+    }
+
+    /**
+     * Generates automatic practice sections based on musical measures
+     */
+    function generateAutoPracticeSections(midiData) {
+        if (!midiData) return [];
+        const ppq = midiData.ppq || 480;
+        const measureTicks = ppq * 4;
+        const totalDurationSec = midiData.totalDurationSec || 180;
+        const lastTick = (midiData && midiData.secondsToTick) ? midiData.secondsToTick(totalDurationSec) : Math.round(totalDurationSec * ppq * 2);
+        const totalMeasures = Math.ceil(lastTick / measureTicks);
+
+        const template = [
+            { name: 'Intro', startM: 0 },
+            { name: 'Verse 1', startM: 8 },
+            { name: 'Chorus 1', startM: 24 },
+            { name: 'Verse 2', startM: 40 },
+            { name: 'Chorus 2', startM: 56 },
+            { name: 'Guitar Solo', startM: 72 },
+            { name: 'Bridge', startM: 88 },
+            { name: 'Chorus 3', startM: 104 },
+            { name: 'Outro', startM: 120 }
+        ];
+
+        const sections = [];
+        template.forEach(t => {
+            if (t.startM < totalMeasures) {
+                const tick = t.startM * measureTicks;
+                sections.push({
+                    tick: tick,
+                    eventText: `section ${t.name}`,
+                    timeSec: (midiData && midiData.tickToSeconds) ? midiData.tickToSeconds(tick) : (tick / (ppq * 2))
+                });
+            }
+        });
+
+        return sections;
+    }
+
+    /**
      * Builds the complete set of charted tracks for all assigned instruments
      */
     function buildAllCharts(midiData, trackAssignments, configs = {}) {
@@ -708,17 +901,33 @@
             result[inst] = {};
 
             for (let diff of difficulties) {
+                let trackList = null;
                 if (inst === 'drums') {
-                    result[inst][diff] = chartDrumTrack(combinedNotes, ppq, diff, instConfig);
+                    trackList = chartDrumTrack(combinedNotes, ppq, diff, instConfig);
+                    if (instConfig.singleKickPedal) {
+                        trackList = filterSingleKickPedal(trackList, ppq, 130, midiData);
+                    }
                 } else if (inst === 'drums_5lane') {
-                    result[inst][diff] = chart5LaneDrumTrack(combinedNotes, ppq, diff, instConfig);
+                    trackList = chart5LaneDrumTrack(combinedNotes, ppq, diff, instConfig);
                 } else if (inst === 'guitarghl' || inst === 'bassghl' || inst === 'rhythmghl' || inst === 'guitar_coop_ghl') {
-                    result[inst][diff] = chartGHLTrack(combinedNotes, ppq, diff, instConfig);
+                    trackList = chartGHLTrack(combinedNotes, ppq, diff, instConfig);
                 } else if (inst === 'dance') {
-                    result[inst][diff] = chartDanceTrack(combinedNotes, ppq, diff, instConfig);
+                    trackList = chartDanceTrack(combinedNotes, ppq, diff, instConfig);
                 } else if (!inst.startsWith('vocals')) {
-                    result[inst][diff] = chartFrettedTrack(combinedNotes, ppq, diff, instConfig);
+                    trackList = chartFrettedTrack(combinedNotes, ppq, diff, instConfig);
                 }
+
+                if (trackList && trackList.length > 0) {
+                    const spFreq = instConfig.starPowerFrequency !== undefined ? instConfig.starPowerFrequency : 16;
+                    if (spFreq > 0) {
+                        trackList._starPowers = generateStarPowerPhrases(trackList, ppq, spFreq);
+                    }
+                    if (instConfig.autoSolos !== false && (inst === 'guitar' || inst === 'guitarghl')) {
+                        trackList._solos = generateSoloMarkers(trackList, ppq);
+                    }
+                }
+
+                result[inst][diff] = trackList;
             }
         }
 
@@ -735,6 +944,11 @@
         chartDanceTrack,
         buildAllCharts,
         clusterNotes,
+        generateStarPowerPhrases,
+        generateSoloMarkers,
+        filterSingleKickPedal,
+        calculateTrackStats,
+        generateAutoPracticeSections,
         DEFAULT_CONFIGS
     };
 }));

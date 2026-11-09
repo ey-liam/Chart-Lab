@@ -265,3 +265,24 @@ def chart_dance(notes: List[MidiNote], ppq: int, difficulty: str = "Expert") -> 
         panel = (int(avg_p) + i) % 4
         events.append((t, panel, 0))
     return events
+
+
+def generate_star_power(notes: List[Tuple[int, int, int]], ppq: int, frequency_measures: int = 16) -> List[Tuple[int, int]]:
+    """
+    Generates Star Power phrases (tick, duration_in_ticks) every N measures.
+    """
+    if not notes or frequency_measures <= 0:
+        return []
+    measure_ticks = ppq * 4
+    interval_ticks = frequency_measures * measure_ticks
+    phrase_length = measure_ticks * 2
+    max_tick = notes[-1][0]
+    phrases = []
+
+    for target in range(interval_ticks // 2, max_tick, interval_ticks):
+        in_win = [n for n in notes if target <= n[0] <= target + interval_ticks]
+        if in_win:
+            start_tick = in_win[0][0]
+            phrases.append((start_tick, phrase_length))
+
+    return phrases

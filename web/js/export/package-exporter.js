@@ -121,6 +121,7 @@
         chart += `  PreviewEnd = ${(metadata.previewStartSec || 30) + 30}\n`;
         chart += `  Genre = "${metadata.genre || 'rock'}"\n`;
         chart += `  MediaType = "cd"\n`;
+        chart += `  HopoFreq = ${metadata.hopoFreq || 170}\n`;
 
         if (metadata.hasGuitarStem) chart += `  GuitarStream = "Guitar.wav"\n`;
         if (metadata.hasBassStem) chart += `  BassStream = "Bass.wav"\n`;
@@ -183,6 +184,19 @@
                     lines.push(`  ${ev.tick} = N ${ev.fret} ${ev.sustain || 0}`);
                     if (ev.starPower) {
                         lines.push(`  ${ev.starPower.tick} = S 2 ${ev.starPower.duration}`);
+                    }
+                }
+
+                if (noteList._starPowers && noteList._starPowers.length > 0) {
+                    for (let sp of noteList._starPowers) {
+                        lines.push(`  ${sp.tick} = S 2 ${sp.duration}`);
+                    }
+                }
+
+                if (noteList._solos && noteList._solos.length > 0) {
+                    for (let s of noteList._solos) {
+                        lines.push(`  ${s.startTick} = E "solo"`);
+                        lines.push(`  ${s.endTick} = E "solo_end"`);
                     }
                 }
 
