@@ -182,11 +182,12 @@
         }
 
         getHighwayCoords(fret, progress, isDrumMode = false, isGHLMode = false, isDanceMode = false) {
-            const horizonY = this.height * 0.18;
+            const horizonY = this.height * 0.16;
             const strikeY = this.height * 0.86;
 
-            const topWidth = this.width * 0.32;
-            const bottomWidth = this.width * 0.72;
+            // Proportioned 3D highway (prevents ultra-wide horizontal stretching)
+            const bottomWidth = Math.min(this.width * 0.85, 480);
+            const topWidth = bottomWidth * 0.40;
 
             const y = horizonY + (strikeY - horizonY) * progress;
             const currentWidth = topWidth + (bottomWidth - topWidth) * progress;
@@ -224,10 +225,10 @@
         }
 
         drawHighway(ctx, w, h, isDrumMode, isGHLMode, isDanceMode) {
-            const horizonY = h * 0.18;
+            const horizonY = h * 0.16;
             const strikeY = h * 0.86;
-            const topW = w * 0.32;
-            const botW = w * 0.72;
+            const botW = Math.min(w * 0.85, 480);
+            const topW = botW * 0.40;
             const centerX = w / 2;
 
             const grad = ctx.createLinearGradient(centerX, horizonY, centerX, strikeY);
@@ -302,7 +303,7 @@
 
         drawStrikeLine(ctx, w, h, isDrumMode, isGHLMode, isDanceMode, currentTime) {
             const strikeY = h * 0.86;
-            const botW = w * 0.72;
+            const botW = Math.min(w * 0.85, 480);
             const centerX = w / 2;
 
             ctx.lineWidth = 3;
@@ -390,12 +391,9 @@
 
                 if (progress < 0 || progress > 1.05) continue;
 
-                if (Math.abs(delta) < 0.03 && !ev._hitTriggered && this.audio && this.audio.isPlaying) {
+                if (Math.abs(delta) < 0.04 && !ev._hitTriggered && this.audio && this.audio.isPlaying) {
                     ev._hitTriggered = true;
                     this.triggerHit(ev.fret, isDrumMode, isGHLMode, isDanceMode);
-                    if (!this.audio.hasLoadedAudio()) {
-                        this.audio.playSynthNote(this.selectedInstrument, ev.fret, 0.25);
-                    }
                 } else if (delta > 0.05) {
                     ev._hitTriggered = false;
                 }
@@ -410,10 +408,11 @@
                     ctx.shadowBlur = 12;
                     ctx.fillRect(coord.x - coord.width / 2 + 10, coord.y - 6, coord.width - 20, 12);
                 } else if (isDrumMode && ev.fret === 0) {
+                    const kickW = coord.width * 5;
                     ctx.fillStyle = c.fill;
                     ctx.shadowColor = c.glow;
                     ctx.shadowBlur = 10;
-                    ctx.fillRect(this.width / 2 - (coord.width * 2.5) + 8, coord.y - 5, coord.width * 5 - 16, 10);
+                    ctx.fillRect(this.width / 2 - kickW / 2 + 8, coord.y - 5, kickW - 16, 10);
                 } else {
                     const radiusX = Math.max(8, coord.width * 0.36);
                     const radiusY = Math.max(5, 7 + 4 * progress);

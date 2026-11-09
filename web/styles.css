@@ -50,26 +50,28 @@ body {
     gap: 14px;
 }
 
-.logo-badge {
+.logo-icon {
+    width: 38px;
+    height: 38px;
     background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-    color: #fff;
-    font-weight: 800;
-    font-size: 1.2rem;
-    padding: 6px 14px;
     border-radius: 8px;
-    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
     box-shadow: 0 0 15px var(--primary-glow);
 }
 
 .logo-title {
     font-size: 1.4rem;
-    font-weight: 700;
+    font-weight: 800;
     color: #ffffff;
+    letter-spacing: 0.5px;
 }
 
 .logo-subtitle {
     font-size: 0.82rem;
-    color: var(--text-muted);
+    color: #cbd5e1;
 }
 
 .header-badges {
@@ -274,19 +276,57 @@ body {
     border: 1px solid rgba(255, 234, 0, 0.3);
 }
 
-/* Highway Canvas Container */
+/* Highway Canvas Container - Centered and Authentically Proportioned */
 .highway-wrapper {
     position: relative;
     width: 100%;
-    height: 520px;
-    background: #000000;
+    max-width: 840px;
+    height: 530px;
+    margin: 0 auto;
+    background: radial-gradient(ellipse at bottom, #090e1a 0%, #030712 100%);
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid var(--border-color);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(2, 132, 199, 0.15);
 }
 
 #highwayCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Audio Waveform Canvas Container */
+.waveform-wrapper {
+    position: relative;
+    width: 100%;
+    height: 130px;
+    background: #05070e;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    margin-bottom: 14px;
+}
+
+#audioWaveformCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Vocal Roll Timeline Canvas */
+.vocal-roll-wrapper {
+    position: relative;
+    width: 100%;
+    height: 140px;
+    background: #080d1a;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    margin-bottom: 14px;
+}
+
+#vocalRollCanvas {
     width: 100%;
     height: 100%;
     display: block;
@@ -486,4 +526,79 @@ body {
 
 .app-footer a:hover {
     text-decoration: underline;
+}
+
+/* ==========================================
+   High-Contrast Readability & Accessibility
+   ========================================== */
+p, span, li, label, div {
+    color: #e2e8f0;
+}
+
+.text-muted, [class*="text-muted"], .form-text {
+    color: #94a3b8 !important;
+}
+
+small.text-muted, .text-muted.small {
+    color: #cbd5e1 !important;
+}
+
+.form-label {
+    color: #e2e8f0 !important;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.form-control, .form-select {
+    background-color: #0d1527 !important;
+    border-color: #2b3952 !important;
+    color: #ffffff !important;
+}
+
+.form-control::placeholder {
+    color: #64748b !important;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #111c33 !important;
+    border-color: #38bdf8 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.3) !important;
+}
+
+.card-title {
+    color: #ffffff !important;
+    font-size: 1.18rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.card-panel p, .card-panel li {
+    color: #e2e8f0 !important;
+    line-height: 1.65;
+}
+
+.instruction-box {
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+}
+
+.instruction-box h6 {
+    color: #38bdf8;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.instruction-box ol, .instruction-box ul {
+    margin-bottom: 0;
+    padding-left: 20px;
+}
+
+.instruction-box li {
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
 }

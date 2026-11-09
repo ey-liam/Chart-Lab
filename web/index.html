@@ -12,10 +12,10 @@
     <!-- Header -->
     <header class="app-header">
         <div class="logo-container">
-            <div class="logo-badge">CHART-LAB</div>
+            <div class="logo-icon">🎸</div>
             <div>
-                <div class="logo-title">Chart-Lab Studio</div>
-                <div class="logo-subtitle">Suite de edición y validación multi-instrumento</div>
+                <div class="logo-title">Chart-Lab</div>
+                <div class="logo-subtitle">Suite de edición y validación para Clone Hero, YARG y GHWT:DE</div>
             </div>
         </div>
         <div class="header-badges">
@@ -224,29 +224,51 @@
 
         <!-- TAB 2: LETRAS & SECCIONES -->
         <section id="tab-lyrics" class="tab-pane">
+            <!-- Instruction Box -->
+            <div class="instruction-box mb-3">
+                <h6>Guía para Letras y Secciones de Práctica:</h6>
+                <ol>
+                    <li>Selecciona la pista vocal de tu archivo MIDI en el menú inferior.</li>
+                    <li>Pega el texto de la canción; el motor fonético dividirá las palabras en sílabas estándar (<code>hel-</code> y <code>lo</code>).</li>
+                    <li>Haz clic en <strong>Sincronizar Sílabas</strong> para mapear cada sílaba con la nota vocal correspondiente.</li>
+                    <li>Pulsa <strong>✨ Auto-Generar Secciones de Práctica</strong> para crear los saltos de sección (Intro, Verso, Coro, Solo) que Clone Hero y YARG reconocen en el modo práctica.</li>
+                </ol>
+            </div>
+
+            <!-- Visual Vocal Melody & Lyric Roll Preview -->
+            <div class="card-panel mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                    <div class="card-title mb-0">Previsualizador de Melodía Vocal y Sílabas</div>
+                    <span class="small text-muted" id="vocalPreviewNoteCount">Sin notas vocales</span>
+                </div>
+                <div class="vocal-roll-wrapper">
+                    <canvas id="vocalRollCanvas" height="130"></canvas>
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-lg-6">
                     <div class="card-panel">
                         <div class="card-title">Alineación de Letras</div>
 
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Pista Vocal de Referencia:</label>
+                            <label class="form-label small">Pista Vocal de Referencia:</label>
                             <select class="form-select" id="vocalTrackSelect">
                                 <option value="">Seleccione pista...</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Modo de División:</label>
+                            <label class="form-label small">Modo de División:</label>
                             <select class="form-select" id="lyricsModeSelect">
-                                <option value="syllables" selected>División en Sílabas</option>
+                                <option value="syllables" selected>División en Sílabas Fonéticas (Recomendado)</option>
                                 <option value="words">Palabras Completas</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small text-muted">Texto de la Letra:</label>
-                            <textarea class="form-control" id="lyricsTextInput" rows="8" placeholder="Ingrese la letra aquí..."></textarea>
+                            <label class="form-label small">Texto de la Letra:</label>
+                            <textarea class="form-control" id="lyricsTextInput" rows="7" placeholder="Pega la letra de la canción aquí..."></textarea>
                         </div>
 
                         <button class="btn btn-primary-glow w-100" id="btnAlignLyrics">
@@ -260,7 +282,7 @@
 
                 <div class="col-lg-6">
                     <div class="card-panel">
-                        <div class="card-title">Eventos Líricos Generados</div>
+                        <div class="card-title">Eventos Líricos y Secciones Generadas</div>
 
                         <div style="max-height: 400px; overflow-y: auto;">
                             <table class="table-dark-custom">
@@ -288,24 +310,72 @@
 
         <!-- TAB 3: AUDIO & SINCRONIZACIÓN -->
         <section id="tab-audio" class="tab-pane">
-            <div class="card-panel">
-                <div class="card-title">Gestión de Audio y Canales Stems</div>
-                <p class="text-muted small">
-                    Cargue la pista maestra o los stems separados (Guitar, Bass, Drums, Keys, Vocals).
-                </p>
+            <!-- Instruction Box -->
+            <div class="instruction-box mb-3">
+                <h6>Instrucciones para Sincronización y Audio:</h6>
+                <ol>
+                    <li><strong>Elige qué escuchar:</strong> Puedes reproducir solo el <em>Sintetizador MIDI</em>, solo tu <em>Canción de audio / Stems</em>, o <em>Ambos a la vez</em> para escuchar si van desfasados.</li>
+                    <li><strong>Carga tu audio:</strong> Selecciona el archivo maestro (<code>song.ogg</code> / <code>song.mp3</code>) o los stems separados por instrumento.</li>
+                    <li><strong>Calibra con la Forma de Onda:</strong> En el gráfico espectral, las líneas verticales amarillas/blancas marcan los compases del MIDI. Usa los botones <strong>+/- 10ms o +/- 50ms</strong> hasta que el primer golpe de la canción coincida exactamente con la línea de compás <code>M1</code>.</li>
+                </ol>
+            </div>
 
-                <!-- Global Offset -->
-                <div class="row g-3 align-items-center mb-4">
-                    <div class="col-md-3">
-                        <label class="form-label small text-muted">Desfase Global (Offset en ms):</label>
-                        <input type="number" class="form-control" id="audioOffsetMs" value="0" step="10">
+            <!-- Audio Mode & MIDI Audition Toolbar -->
+            <div class="card-panel mb-3">
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-6">
+                        <label class="form-label">🎧 Modo de Reproducción de Sonido:</label>
+                        <select class="form-select" id="audioModeSelect">
+                            <option value="both" selected>⚡ Ambos Simultáneos (MIDI + Audio para calibrar sincronía)</option>
+                            <option value="midi">🎹 Solo Sintetizador MIDI (Sin necesitar archivo de audio)</option>
+                            <option value="audio">🎵 Solo Archivos de Audio / Stems</option>
+                        </select>
                     </div>
-                    <div class="col-md-9 text-muted small pt-3">
-                        Compensa la latencia entre el tiempo cero del audio y el primer tick del MIDI.
+                    <div class="col-md-6">
+                        <label class="form-label">🎹 Pistas MIDI a Escuchar (Sintetizador):</label>
+                        <select class="form-select" id="midiAuditionSelect">
+                            <option value="all" selected>Toda la banda completa (Todos los instrumentos)</option>
+                            <option value="guitar">Solo Guitarra</option>
+                            <option value="bass">Solo Bajo</option>
+                            <option value="drums">Solo Batería</option>
+                            <option value="vocals">Solo Vocales</option>
+                            <option value="keys">Solo Teclados</option>
+                        </select>
                     </div>
                 </div>
+            </div>
 
-                <!-- Stems Upload & Mixers -->
+            <!-- Waveform & Beat Grid Synchronizer -->
+            <div class="card-panel mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                    <div class="card-title mb-0">Forma de Onda de Audio y Rejilla de Compases MIDI</div>
+                    <span class="small text-muted" id="waveformStatusText">Cargue un audio para ver los transitorios</span>
+                </div>
+                <div class="waveform-wrapper">
+                    <canvas id="audioWaveformCanvas" height="130"></canvas>
+                </div>
+
+                <!-- Interactive Offset Control & Quick Nudge Buttons -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0">Desfase Global (Offset):</label>
+                        <input type="number" class="form-control" id="audioOffsetMs" value="0" step="5" style="width: 110px;">
+                        <span class="small text-muted">ms</span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-1">
+                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgeMinus50">-50ms</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgeMinus10">-10ms</button>
+                        <button class="btn btn-sm btn-outline-primary" id="btnNudgeReset">0ms</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgePlus10">+10ms</button>
+                        <button class="btn btn-sm btn-outline-secondary" id="btnNudgePlus50">+50ms</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stems Upload & Mixers -->
+            <div class="card-panel">
+                <div class="card-title">Canales de Audio y Pistas Separadas (Stems)</div>
                 <div class="row g-3">
                     <div class="col-md-4 stem-card">
                         <div class="stem-header">
@@ -400,12 +470,12 @@
                 </div>
 
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <label class="small text-muted">Pista:</label>
+                    <label class="small fw-bold" style="color: #cbd5e1;">Pista:</label>
                     <select class="form-select form-select-sm" id="highwayInstSelect" style="width: auto;">
                         <option value="guitar">Guitarra Líder</option>
                     </select>
 
-                    <label class="small text-muted">Dificultad:</label>
+                    <label class="small fw-bold" style="color: #cbd5e1;">Dificultad:</label>
                     <select class="form-select form-select-sm" id="highwayDiffSelect" style="width: auto;">
                         <option value="Expert" selected>Expert</option>
                         <option value="Hard">Hard</option>
@@ -413,14 +483,21 @@
                         <option value="Easy">Easy</option>
                     </select>
 
-                    <label class="small text-muted">Scroll:</label>
+                    <label class="small fw-bold" style="color: #cbd5e1;">Audio:</label>
+                    <select class="form-select form-select-sm" id="highwayAudioModeSelect" style="width: auto;">
+                        <option value="both" selected>⚡ MIDI + Canción</option>
+                        <option value="midi">🎹 Solo MIDI</option>
+                        <option value="audio">🎵 Solo Canción</option>
+                    </select>
+
+                    <label class="small fw-bold" style="color: #cbd5e1;">Scroll:</label>
                     <select class="form-select form-select-sm" id="highwaySpeedSelect" style="width: auto;">
                         <option value="1.5">Rápido (1.5s)</option>
                         <option value="2.2" selected>Estándar (2.2s)</option>
                         <option value="3.0">Lento (3.0s)</option>
                     </select>
 
-                    <label class="small text-muted">Práctica:</label>
+                    <label class="small fw-bold" style="color: #cbd5e1;">Velocidad:</label>
                     <select class="form-select form-select-sm" id="playbackRateSelect" style="width: auto;">
                         <option value="0.5">0.5x (Lenta)</option>
                         <option value="0.75">0.75x</option>
@@ -733,15 +810,26 @@
         <section id="tab-about" class="tab-pane">
             <div class="card-panel">
                 <div class="card-title">Acerca de Chart-Lab</div>
-                <p class="text-muted small">
-                    <strong>Chart-Lab</strong> es una suite interactiva creada por <strong>Ey-Liam</strong> para análisis, generación y validación de charts para rhythm games (Clone Hero, YARG, Phase Shift, Moonscraper y GHWT:DE). Diseñada para que jugadores casuales y principiantes puedan crear sus propios charts, experimentar y comprender el funcionamiento técnico de los formatos de ritmo sin barreras complejas.
+                <p class="fs-6" style="color: #f1f5f9; line-height: 1.7;">
+                    <strong>Chart-Lab</strong> es una suite interactiva creada y desarrollada por <strong>Ey-Liam</strong>, concebida como un laboratorio accesible y educativo para la creación, ajuste y experimentación de canciones para rhythm games como <strong>Clone Hero</strong>, <strong>YARG (Yet Another Rhythm Game)</strong> y <strong>Guitar Hero World Tour: Definitive Edition (GHWT:DE)</strong>.
                 </p>
-                <ul class="text-muted small">
-                    <li>Generación multi-instrumento: Lead Guitar (5 frets), GHL Guitar (6 frets), Bass (5 frets), GHL Bass (6 frets), Rhythm (5 & 6 frets), Guitar Coop, Drums / Pro Drums (con platillos 64, 65, 66), 5-Lane Drums, Keys, Pro Keys, Lead Vocals, Vocal Harmonies 1-3, Dance (4 paneles).</li>
-                    <li>Soporte de cuatro niveles de dificultad: Expert, Hard, Medium, Easy.</li>
-                    <li>Alineación fonética de texto a notas vocales con marcadores de frase.</li>
-                    <li>Validación de colisiones temporales y recorte automático de sustains.</li>
-                    <li>Exportación completa según el estándar de YARG (song.ini con dificultades enteras, opciones de motor, créditos extendidos y enlaces comunitarios).</li>
+
+                <div class="instruction-box mb-4">
+                    <h6>Propósito del Proyecto:</h6>
+                    <p style="color: #cbd5e1; margin-bottom: 0;">
+                        El objetivo es permitir a jugadores casuales y novatos crear sus propios charts directamente desde archivos MIDI sin necesidad de conocimientos avanzados de programación o de teoría compleja de charting, comprendiendo en el proceso la anatomía de los tempos, trastes, letras y metadatos. No busca reemplazar el trabajo manual minucioso de charters profesionales en herramientas dedicadas como Moonscraper, sino ofrecer una alternativa lúdica, rápida y sin fricción técnica.
+                    </p>
+                </div>
+
+                <h6 class="text-info fw-bold mb-3">Ecosistema y Capacidades:</h6>
+                <ul style="color: #e2e8f0; line-height: 1.8;">
+                    <li><strong>Soporte Multi-Instrumento Completo:</strong> Lead Guitar (5 trastes), GHL Guitar (6 botones), Bajo (5 trastes), Bajo GHL, Guitarra Rítmica (5 y 6 botones), Guitar Coop, Batería Pro (con platillos 64, 65, 66), Batería GH (5 carriles), Teclados, Vocales Líder, Armonías Vocales 1-3 y Pista de Baile.</li>
+                    <li><strong>4 Niveles de Dificultad CSC:</strong> Expert, Hard, Medium y Easy con cumplimiento estricto de reglas de rango (sin notas naranja en Medium, sin azul/naranja en Easy).</li>
+                    <li><strong>Sintetizador Polifónico MIDI Incorporado:</strong> Escucha los instrumentos de tu archivo MIDI en tiempo real mediante síntesis por Web Audio API sin requerir MP3.</li>
+                    <li><strong>Calibrador Espectral de Forma de Onda:</strong> Visualiza la onda de audio y la cuadrícula de compases para ajustar el offset milimétricamente.</li>
+                    <li><strong>Alineador Fonético de Letras:</strong> Silabificación automática con marcas de frase <code>phrase_start</code> y <code>phrase_end</code> para Clone Hero y YARG.</li>
+                    <li><strong>Validación Cero-Defectos:</strong> Recorte automático con regla de 70ms en sustains y ordenamiento monotónico estricto.</li>
+                    <li><strong>Exportación Estándar Oficial:</strong> Paquetes ZIP estructurados con <code>notes.chart</code>, <code>song.ini</code> y pistas de audio organizadas por carpeta.</li>
                 </ul>
             </div>
         </section>

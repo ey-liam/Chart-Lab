@@ -197,6 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             updateMetadataForm();
 
+            // Set MIDI data into Audio Engine for synthesis & visualizers
+            state.audioEngine.setMidiData(parsed);
+
             // Auto-assign tracks
             state.trackAssignments = CharterEngine.autoAssignTracks(parsed.tracks);
 
@@ -413,6 +416,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 sel.appendChild(opt);
             }
         });
+
+        sel.onchange = () => redrawVocalRoll();
+        redrawVocalRoll();
     }
 
     // Recalculate charts across all assigned tracks
@@ -516,7 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const autoSections = CharterEngine.generateAutoPracticeSections(state.midiData);
             state.lyricEvents = state.lyricEvents.filter(e => !e.eventText || !e.eventText.startsWith('section ')).concat(autoSections);
             state.lyricEvents.sort((a, b) => a.tick - b.tick);
-            renderLyricsEventsTable();
+            renderLyricsTable(state.lyricEvents);
+            redrawVocalRoll();
             showToast(`${autoSections.length} secciones de práctica generadas`, 'success');
         });
     }
@@ -642,6 +649,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const f = e.target.files[0];
                     nameEl.textContent = `${f.name} (${(f.size / (1024 * 1024)).toFixed(1)} MB)`;
                     await state.audioEngine.loadStem(stem, f);
+                    const wfText = document.getElementById('waveformStatusText');
+                    if (wfText) wfText.textContent = `Forma de onda: ${f.name}`;
+                    redrawAudioWaveform();
                     showToast(`Stem ${stem} cargado`, 'info');
                 }
             });
@@ -662,15 +672,165 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Global Offset Handler
+    // Audio Mode & MIDI Audition Handlers
+    const audioModeSelect = document.getElementById('audioModeSelect');
+    const highwayAudioModeSelect = document.getElementById('highwayAudioModeSelect');
+
+    function syncAudioMode(val) {
+        state.audioEngine.setAudioMode(val);
+        if (audioModeSelect) audioModeSelect.value = val;
+        if (highwayAudioModeSelect) highwayAudioModeSelect.value = val;
+    }
+
+    if (audioModeSelect) {
+        audioModeSelect.addEventListener('change', (e) => {
+            syncAudioMode(e.target.value);
+            showToast(`Modo: ${e.target.selectedOptions[0].text}`, 'info');
+        });
+    }
+
+    if (highwayAudioModeSelect) {
+        highwayAudioModeSelect.addEventListener('change', (e) => {
+            syncAudioMode(e.target.value);
+            showToast(`Modo: ${e.target.selectedOptions[0].text}`, 'info');
+        });
+    }
+
+    const midiAuditionSelect = document.getElementById('midiAuditionSelect');
+    if (midiAuditionSelect) {
+        midiAuditionSelect.addEventListener('change', (e) => {
+            state.audioEngine.setMidiAudition(e.target.value);
+            showToast(`Audición: ${e.target.selectedOptions[0].text}`, 'info');
+        });
+    }
+
+    // Global Offset Handler & Nudge Buttons
     const audioOffsetInput = document.getElementById('audioOffsetMs');
     if (audioOffsetInput) {
         audioOffsetInput.addEventListener('change', (e) => {
-            const ms = parseInt(e.target.value) || 0;
-            state.metadata.offsetMs = ms;
-            state.audioEngine.setGlobalOffset(ms);
+            updateOffset(parseInt(e.target.value) || 0);
         });
     }
+
+    function updateOffset(ms) {
+        state.metadata.offsetMs = ms;
+        if (audioOffsetInput) audioOffsetInput.value = ms;
+        state.audioEngine.setGlobalOffset(ms);
+        redrawAudioWaveform();
+        showToast(`Offset: ${ms} ms`, 'info');
+    }
+
+    const btnNudgeReset = document.getElementById('btnNudgeReset');
+    if (btnNudgeReset) btnNudgeReset.addEventListener('click', () => updateOffset(0));
+    const btnNudgeM50 = document.getElementById('btnNudgeMinus50');
+    if (btnNudgeM50) btnNudgeM50.addEventListener('click', () => updateOffset(state.metadata.offsetMs - 50));
+    const btnNudgeM10 = document.getElementById('btnNudgeMinus10');
+    if (btnNudgeM10) btnNudgeM10.addEventListener('click', () => updateOffset(state.metadata.offsetMs - 10));
+    const btnNudgeP10 = document.getElementById('btnNudgePlus10');
+    if (btnNudgeP10) btnNudgeP10.addEventListener('click', () => updateOffset(state.metadata.offsetMs + 10));
+    const btnNudgeP50 = document.getElementById('btnNudgePlus50');
+    if (btnNudgeP50) btnNudgeP50.addEventListener('click', () => updateOffset(state.metadata.offsetMs + 50));
+
+    // Audio Waveform & Vocal Roll Render Loop
+    function redrawAudioWaveform() {
+        const canvas = document.getElementById('audioWaveformCanvas');
+        if (!canvas) return;
+        if (canvas.width !== canvas.clientWidth) {
+            canvas.width = canvas.clientWidth || 800;
+        }
+        const cur = state.audioEngine.getCurrentTime();
+        state.audioEngine.drawWaveform(canvas, state.midiData, state.metadata.offsetMs, cur);
+    }
+
+    function redrawVocalRoll() {
+        const canvas = document.getElementById('vocalRollCanvas');
+        if (!canvas || !state.midiData) return;
+        if (canvas.width !== canvas.clientWidth) {
+            canvas.width = canvas.clientWidth || 800;
+        }
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.fillStyle = '#080d1a';
+        ctx.fillRect(0, 0, w, h);
+
+        const vocalTrackId = parseInt(document.getElementById('vocalTrackSelect')?.value);
+        const vocalTrack = state.midiData.tracks.find(t => t.id === vocalTrackId);
+        const notes = vocalTrack ? vocalTrack.notes : [];
+
+        const countEl = document.getElementById('vocalPreviewNoteCount');
+        if (countEl) countEl.textContent = `${notes.length} notas vocales`;
+
+        if (notes.length === 0) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '13px system-ui, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Seleccione una pista vocal para previsualizar melodía y sílabas', w / 2, h / 2 + 5);
+            return;
+        }
+
+        const totalDuration = state.midiData.totalDurationSec || 180;
+        const currentTime = state.audioEngine.getCurrentTime();
+
+        let minPitch = 127;
+        let maxPitch = 0;
+        notes.forEach(n => {
+            if (n.pitch < minPitch) minPitch = n.pitch;
+            if (n.pitch > maxPitch) maxPitch = n.pitch;
+        });
+        minPitch = Math.max(0, minPitch - 2);
+        maxPitch = Math.min(127, maxPitch + 2);
+        const pitchRange = Math.max(12, maxPitch - minPitch);
+
+        notes.forEach(n => {
+            const t0 = n.timeSec !== undefined ? n.timeSec : state.midiData.tickToSeconds(n.tick);
+            const tDur = n.durationSec !== undefined ? n.durationSec : (state.midiData.tickToSeconds(n.tick + n.durationTicks) - t0);
+            const x = (t0 / totalDuration) * w;
+            const noteW = Math.max(2, (tDur / totalDuration) * w);
+            const normPitch = (n.pitch - minPitch) / pitchRange;
+            const y = h - (normPitch * (h - 26)) - 18;
+
+            const isPlayingNote = currentTime >= t0 && currentTime <= t0 + tDur;
+            ctx.fillStyle = isPlayingNote ? '#00e676' : '#38bdf8';
+            ctx.fillRect(x, y, noteW, 6);
+        });
+
+        // Lyrics overlay
+        if (state.lyricEvents && state.lyricEvents.length > 0) {
+            ctx.fillStyle = '#ffea00';
+            ctx.font = '9px monospace';
+            ctx.textAlign = 'left';
+
+            state.lyricEvents.forEach(ev => {
+                if (ev.eventText && ev.eventText.startsWith('lyric ')) {
+                    const txt = ev.eventText.replace('lyric ', '').trim();
+                    const tSec = state.midiData.tickToSeconds(ev.tick);
+                    const x = (tSec / totalDuration) * w;
+                    ctx.fillText(txt, x, h - 4);
+                }
+            });
+        }
+
+        // Playhead cursor
+        if (currentTime > 0) {
+            const curX = (currentTime / totalDuration) * w;
+            ctx.strokeStyle = '#ff1744';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(curX, 0);
+            ctx.lineTo(curX, h);
+            ctx.stroke();
+        }
+    }
+
+    // Periodic redrawing of waveform & vocal roll
+    setInterval(() => {
+        redrawAudioWaveform();
+        redrawVocalRoll();
+    }, 75);
 
     // Lyrics Sincronizer
     document.getElementById('btnAlignLyrics').addEventListener('click', () => {
@@ -710,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('lyricsStatusBadge').textContent = `${events.length} sílabas sincronizadas`;
         document.getElementById('lyricsStatusBadge').className = 'badge badge-success';
+        redrawVocalRoll();
         showToast('Sílabas sincronizadas con éxito', 'success');
     });
 
@@ -717,25 +878,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const tbody = document.getElementById('lyricsEventsBody');
         tbody.innerHTML = '';
 
-        const lyricOnly = events.filter(e => e.eventText && e.eventText.startsWith('lyric '));
-        const maxDisplay = Math.min(50, lyricOnly.length);
+        const displayEvents = events.filter(e => e.eventText && (e.eventText.startsWith('lyric ') || e.eventText.startsWith('section ')));
+        const maxDisplay = Math.min(80, displayEvents.length);
+
+        if (displayEvents.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-4">No se han generado eventos de letra ni secciones aún.</td></tr>`;
+            return;
+        }
 
         for (let i = 0; i < maxDisplay; i++) {
-            const ev = lyricOnly[i];
+            const ev = displayEvents[i];
             const sec = state.midiData ? state.midiData.tickToSeconds(ev.tick) : 0;
+            const isSection = ev.eventText.startsWith('section ');
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><code>${ev.tick}</code></td>
-                <td><small>${formatTime(sec)}</small></td>
-                <td><span class="badge badge-lyrics">Lírica</span></td>
-                <td><strong>${ev.eventText.replace('lyric ', '')}</strong></td>
+                <td><small style="color: #cbd5e1;">${formatTime(sec)}</small></td>
+                <td><span class="badge ${isSection ? 'badge-warning' : 'badge-notes'}">${isSection ? 'Sección' : 'Lírica'}</span></td>
+                <td><strong style="color: #ffffff;">${isSection ? ev.eventText.replace('section ', '[Sección: ') + ']' : ev.eventText.replace('lyric ', '')}</strong></td>
             `;
             tbody.appendChild(tr);
         }
 
-        if (lyricOnly.length > 50) {
+        if (displayEvents.length > 80) {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="4" class="text-center text-muted">... y ${lyricOnly.length - 50} sílabas más sincronizadas</td>`;
+            tr.innerHTML = `<td colspan="4" class="text-center text-muted">... y ${displayEvents.length - 80} eventos más sincronizados</td>`;
             tbody.appendChild(tr);
         }
     }
