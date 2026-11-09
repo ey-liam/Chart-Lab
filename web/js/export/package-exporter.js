@@ -124,19 +124,19 @@ class PackageExporter {
         if (meta.loadingPhrase) lines.push(`loading_phrase = ${meta.loadingPhrase}`);
 
         // Dificultades
-        lines.push(`diff_band = ${meta.diffBand}`);
-        lines.push(`diff_guitar = ${meta.diffGuitar}`);
-        lines.push(`diff_bass = ${meta.diffBass}`);
-        lines.push(`diff_rhythm = ${meta.diffRhythm}`);
-        lines.push(`diff_guitar_coop = ${meta.diffGuitarCoop}`);
-        lines.push(`diff_guitarghl = ${meta.diffGuitarGhl}`);
-        lines.push(`diff_bassghl = ${meta.diffBassGhl}`);
-        lines.push(`diff_drums = ${meta.diffDrums}`);
-        lines.push(`diff_drums_real = ${meta.diffDrumsReal}`);
-        lines.push(`diff_keys = ${meta.diffKeys}`);
-        lines.push(`diff_vocals = ${meta.diffVocals}`);
-        lines.push(`diff_vocals_harm = ${meta.diffVocalsHarm}`);
-        lines.push(`diff_dance = ${meta.diffDance}`);
+        lines.push(`diff_band = ${meta.diffBand !== undefined && !isNaN(meta.diffBand) ? meta.diffBand : -1}`);
+        lines.push(`diff_guitar = ${meta.diffGuitar !== undefined && !isNaN(meta.diffGuitar) ? meta.diffGuitar : -1}`);
+        lines.push(`diff_bass = ${meta.diffBass !== undefined && !isNaN(meta.diffBass) ? meta.diffBass : -1}`);
+        lines.push(`diff_rhythm = ${meta.diffRhythm !== undefined && !isNaN(meta.diffRhythm) ? meta.diffRhythm : -1}`);
+        lines.push(`diff_guitar_coop = ${meta.diffGuitarCoop !== undefined && !isNaN(meta.diffGuitarCoop) ? meta.diffGuitarCoop : -1}`);
+        lines.push(`diff_guitarghl = ${meta.diffGuitarGhl !== undefined && !isNaN(meta.diffGuitarGhl) ? meta.diffGuitarGhl : -1}`);
+        lines.push(`diff_bassghl = ${meta.diffBassGhl !== undefined && !isNaN(meta.diffBassGhl) ? meta.diffBassGhl : -1}`);
+        lines.push(`diff_drums = ${meta.diffDrums !== undefined && !isNaN(meta.diffDrums) ? meta.diffDrums : -1}`);
+        lines.push(`diff_drums_real = ${meta.diffDrumsReal !== undefined && !isNaN(meta.diffDrumsReal) ? meta.diffDrumsReal : -1}`);
+        lines.push(`diff_keys = ${meta.diffKeys !== undefined && !isNaN(meta.diffKeys) ? meta.diffKeys : -1}`);
+        lines.push(`diff_vocals = ${meta.diffVocals !== undefined && !isNaN(meta.diffVocals) ? meta.diffVocals : -1}`);
+        lines.push(`diff_vocals_harm = ${meta.diffVocalsHarm !== undefined && !isNaN(meta.diffVocalsHarm) ? meta.diffVocalsHarm : -1}`);
+        lines.push(`diff_dance = ${meta.diffDance !== undefined && !isNaN(meta.diffDance) ? meta.diffDance : -1}`);
 
         // Parámetros de motor
         lines.push(`pro_drums = ${meta.proDrums ? '1' : '0'}`);
